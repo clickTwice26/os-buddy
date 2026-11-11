@@ -105,6 +105,17 @@ os-buddy/
 | `.gitignore` | Tooling | Keeps secrets, editor folders and temp files out of git |
 | `CHANGELOG.md`, `LICENSE` | Documentation | Version history and usage terms |
 | `README.md` | Documentation | Install, configuration, usage, and the PEAS summary |
+| `.githooks/pre-commit` | Tooling | Blocks commits that contain API keys, `.env` files or private keys |
+
+## Development
+
+After cloning, turn on the secret-scanning commit hook once:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+From then on, `git commit` is refused if a staged file contains a Gemini/Google API key, a long `GEMINI_API_KEY=` value, a private key, a GitHub token, or is a secret file such as `.env`. It prints only `file:line`, never the secret itself.
 
 ## Documentation
 

@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit: refuse any commit that contains a secret.
+# Git runs this before every commit; a non-zero exit cancels the commit.
+#
+# Enable once per clone:   git config core.hooksPath .githooks
+# Emergency skip (avoid):  git commit --no-verify
+
+fail=0
+
+# Files staged for this commit (added, copied, modified, renamed).
+mapfile -t files < <(git diff --cached --name-only --diff-filter=ACMR)
+(( ${#files[@]} > 0 )) || exit 0
+
+# 1. Secret files must never be committed. *.example files are fine.
+for f in "${files[@]}"; do
+  [[ "$f" == *.example ]] && continue
+  case "$(basename "$f")" in
+    .env|.env.*|config|*.key|*.pem|id_rsa|id_ed25519)
+      echo "pre-commit: secret file staged: $f"
+      fail=1 ;;
+  esac
+done
+
+# 2. Secret-looking text inside staged files.
+#    Short dummy values used in tests (test-key-123, your-key) do not match.
+patterns=(
+  'AIza[0-9A-Za-z_-]{35}'                              # Google / Gemini API key
+  'GEMINI_API_KEY=["'\'']?[A-Za-z0-9_-]{20,}'          # a real-length key value
+  '-----BEGIN [A-Z ]*PRIVATE KEY-----'                 # private key file content
+  'gh[pousr]_[A-Za-z0-9]{36}'                          # GitHub token
+  'sk-[A-Za-z0-9_-]{20,}'                              # OpenAI-style key
+)
+for p in "${patterns[@]}"; do
+  # --cached: search the staged version. Print only file:line, never the
+  # secret itself, so it does not end up in terminal logs.
+  if hits="$(git grep --cached -n -I -E -e "$p" -- "${files[@]}" | cut -d: -f1,2)" && [[ -n "$hits" ]]; then
+    printf 'pre-commit: possible secret at %s\n' $hits
+    fail=1
+  fi
+done
+
+if (( fail )); then
+  echo
+  echo "Commit blocked. Remove the secret, then: git restore --staged <file>"
+  echo "Keep keys in .env (ignored by git), never in tracked files."
+  exit 1
+fi
+exit 0
