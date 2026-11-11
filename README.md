@@ -4,13 +4,18 @@
 
 Needs Linux/Unix, Bash 4.4+, `curl` and `jq`, and a Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey).
 
+Run it straight from the project folder:
+
 ```bash
-./install.sh                         # links os-buddy into ~/.local/bin, creates the config
-nano ~/.config/os-buddy/config       # put your GEMINI_API_KEY there
-os-buddy "find the 3 largest files in this folder"
-os-buddy                             # chat mode
+echo 'GEMINI_API_KEY=your-key' > .env && chmod 600 .env   # .env is git-ignored
+./bin/os-buddy "find the 3 largest files in this folder"
+./bin/os-buddy                       # chat mode
 bash tests/run.sh                    # offline tests (or: make test)
 ```
+
+The key is read from the first of these that exists: the `GEMINI_API_KEY` environment variable, `.env` in the project folder, `~/.config/os-buddy/config`.
+
+Optional: `./install.sh` links `os-buddy` into `~/.local/bin` so it runs from any folder.
 
 Exit codes: 0 done, 1 error, 2 usage error, 3 step limit reached.
 

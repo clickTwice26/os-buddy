@@ -1,7 +1,19 @@
 # lib/config.sh: settings and command-line flags.
 # Priority (lowest to highest): defaults < config file < environment < flags.
 
-OSBUDDY_CONFIG_FILE="${OSBUDDY_CONFIG_FILE:-$HOME/.config/os-buddy/config}"
+# Which config file to read (first match wins):
+#   1. OSBUDDY_CONFIG_FILE, if you set it yourself
+#   2. .env in the os-buddy project folder (next to bin/ and lib/)
+#   3. ~/.config/os-buddy/config
+# Note: it is the PROJECT's .env, not the current folder's, so os-buddy
+# never reads some other project's .env by accident.
+if [[ -z "${OSBUDDY_CONFIG_FILE:-}" ]]; then
+  if [[ -n "${OSBUDDY_ROOT:-}" && -f "$OSBUDDY_ROOT/.env" ]]; then
+    OSBUDDY_CONFIG_FILE="$OSBUDDY_ROOT/.env"
+  else
+    OSBUDDY_CONFIG_FILE="$HOME/.config/os-buddy/config"
+  fi
+fi
 
 # Read KEY=VALUE lines from the config file.
 # We parse instead of "source" so the file cannot run code.
@@ -46,7 +58,8 @@ Options:
   -h, --help           show this help
       --version        show the version
 
-Config file: ~/.config/os-buddy/config (KEY=VALUE, chmod 600)
+Config file: .env in the project folder, else ~/.config/os-buddy/config
+(KEY=VALUE lines, chmod 600)
 EOF
 }
 

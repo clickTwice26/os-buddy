@@ -31,4 +31,14 @@ out="$(env -u GEMINI_API_KEY OSBUDDY_CONFIG_FILE="$cfg" OSBUDDY_MODEL=model-from
   echo "$GEMINI_API_KEY $OSBUDDY_MODEL"')"
 assert_eq "from-file model-from-env" "$out" "config file is read, env overrides it"
 
+# With no OSBUDDY_CONFIG_FILE, the project's .env is used automatically.
+fake_root="$TEST_TMP/project"
+mkdir -p "$fake_root"
+printf 'GEMINI_API_KEY=from-dotenv\n' > "$fake_root/.env"
+chmod 600 "$fake_root/.env"
+out="$(env -u GEMINI_API_KEY -u OSBUDDY_CONFIG_FILE OSBUDDY_ROOT="$fake_root" bash -c '
+  source "'"$ROOT"'/lib/ui.sh"; source "'"$ROOT"'/lib/config.sh"; config_load
+  echo "$GEMINI_API_KEY"')"
+assert_eq "from-dotenv" "$out" "project .env is loaded automatically"
+
 finish
