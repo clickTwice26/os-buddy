@@ -1,8 +1,8 @@
-# os-boss: an agentic OS operator in Bash, designed with PEAS
+# os-buddy: an agentic OS operator in Bash, designed with PEAS
 
 ## Context
 
-`/Users/dark/Desktop/os-boss` is empty, so this is a new build. The requirements are:
+`/Users/dark/Desktop/personal-project/os-buddy` is empty, so this is a new build. The requirements are:
 
 - Written in Bash.
 - Runs only on Linux and Unix-based systems.
@@ -13,7 +13,7 @@ Decisions confirmed with the user:
 
 - **Job:** general OS operator. It takes a plain-language goal, then plans, runs commands, reads and edits files, checks results and continues until done.
 - **Autonomy:** read-only actions run automatically, changes ask y/n, dangerous patterns are always blocked.
-- **Run modes:** `os-boss` opens a chat with memory across turns. `os-boss "goal"` completes one task and exits.
+- **Run modes:** `os-buddy` opens a chat with memory across turns. `os-buddy "goal"` completes one task and exits.
 
 **Agent type:** goal-based and model-based. Gemini chooses actions toward the goal, and the conversation history is its internal state. A fixed rule layer in Bash (the policy) sits between the model and the OS, and the model cannot override it.
 
@@ -77,7 +77,7 @@ These are the only ways the agent can affect the world. Each one passes through 
 - **Block always, even with `--yes`:** `rm -rf` on `/`, `/*`, `~` or system directories, `mkfs`, `dd` or redirects onto block devices, fork bombs, recursive `chmod`/`chown` on `/`.
 - **Allow automatically:** every pipeline segment starts with a known read-only command (`ls`, `cat`, `head`, `tail`, `wc`, `grep`, `df`, `du`, `ps`, `uname`, `whoami`, `id`, `date`, `pwd`, `uptime`, `free`, `stat`, `file`, `which`, `sort`, `uniq`, `cut`, `git status/log/diff`, and `find` without `-exec` or `-delete`), and the command has no `;`, `&`, `>`, `$(`, backticks or newlines.
 - **Ask for everything else**, including all `write_file` and `edit_file` calls.
-- **Sensitive paths always ask**, because file contents are sent to Google: `.ssh`, `.aws`, `.gnupg`, `.env`, `/etc/shadow`, private keys, and the os-boss config.
+- **Sensitive paths always ask**, because file contents are sent to Google: `.ssh`, `.aws`, `.gnupg`, `.env`, `/etc/shadow`, private keys, and the os-buddy config.
 - **Non-interactive runs:** anything needing approval is denied and reported to the model, unless `--yes` is given.
 
 ## S: Sensors
@@ -102,7 +102,7 @@ These are the agent's only inputs.
 
 ## Agent function: how percepts become actions (`lib/agent.sh`)
 
-Uses Gemini's native function calling through the REST `generateContent` endpoint. For each step up to `OSBOSS_MAX_STEPS` (default 30):
+Uses Gemini's native function calling through the REST `generateContent` endpoint. For each step up to `OSBUDDY_MAX_STEPS` (default 30):
 
 1. Send the history, system prompt and tool declarations to Gemini.
 2. Append `candidates[0].content` to history **verbatim**. This preserves thought signatures that Gemini 3+ models require on replay.
@@ -129,8 +129,8 @@ Supporting behaviour:
 
 | File | PEAS role | Responsibility |
 |---|---|---|
-| `os-boss` | Environment | Executable entry point: flags, dependency check, chooses chat or one-shot |
-| `lib/config.sh` | Environment | Defaults, then `~/.config/os-boss/config`, then env vars, then flags |
+| `os-buddy` | Environment | Executable entry point: flags, dependency check, chooses chat or one-shot |
+| `lib/config.sh` | Environment | Defaults, then `~/.config/os-buddy/config`, then env vars, then flags |
 | `lib/ui.sh` | Actuator and sensor | Coloured output and approval prompts, disabled when not a TTY |
 | `lib/gemini.sh` | Sensor | Builds the request, calls the API, retries |
 | `lib/agent.sh` | Agent function | The loop, history, stuck detection, trimming |
@@ -142,12 +142,12 @@ Supporting behaviour:
 ## CLI
 
 ```
-os-boss                  # chat; /reset, /help, /exit
-os-boss "free up disk"   # one task, then exit
+os-buddy                  # chat; /reset, /help, /exit
+os-buddy "free up disk"   # one task, then exit
   --yes  --model M  --max-steps N  --verbose  --help
 ```
 
-Default model is `gemini-3.8-flash`, listed in Google's current function-calling docs. Override with `--model` or `OSBOSS_MODEL`.
+Default model is `gemini-3.8-flash`, listed in Google's current function-calling docs. Override with `--model` or `OSBUDDY_MODEL`.
 
 ## Verification
 
