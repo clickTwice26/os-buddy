@@ -1,0 +1,1 @@
+{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"id":"e-1","name":"run_command","args":{"command":"env"}},"thoughtSignature":"sig-e-1"}]},"finishReason":"STOP"}]}

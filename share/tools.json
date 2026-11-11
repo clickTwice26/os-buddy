@@ -1,0 +1,63 @@
+[
+  {
+    "name": "run_command",
+    "description": "Run a shell command with bash -c and return stdout, stderr, exit code and timeout status. Output is capped at about 16 KB.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "command": { "type": "string", "description": "The shell command to run." },
+        "timeout_seconds": { "type": "integer", "description": "Stop the command after this many seconds. Default 120." }
+      },
+      "required": ["command"]
+    }
+  },
+  {
+    "name": "read_file",
+    "description": "Read a text file. Returns numbered lines and the total line count.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "description": "Path of the file." },
+        "offset": { "type": "integer", "description": "First line to read, starting at 1. Default 1." },
+        "limit": { "type": "integer", "description": "Maximum number of lines. Default 400." }
+      },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "write_file",
+    "description": "Create a file or replace its whole content. The user must approve.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "description": "Path of the file." },
+        "content": { "type": "string", "description": "The full new content." }
+      },
+      "required": ["path", "content"]
+    }
+  },
+  {
+    "name": "edit_file",
+    "description": "Replace one exact piece of text in a file. old_text must appear exactly once. The user must approve.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "path": { "type": "string", "description": "Path of the file." },
+        "old_text": { "type": "string", "description": "The exact text to replace, with enough context to be unique." },
+        "new_text": { "type": "string", "description": "The replacement text." }
+      },
+      "required": ["path", "old_text", "new_text"]
+    }
+  },
+  {
+    "name": "ask_user",
+    "description": "Ask the human a question when the goal is unclear. Fails when no human is present.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "question": { "type": "string", "description": "The question to ask." }
+      },
+      "required": ["question"]
+    }
+  }
+]

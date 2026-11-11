@@ -1,0 +1,12 @@
+# os-buddy config. Location: ~/.config/os-buddy/config
+# Keep it private:  chmod 600 ~/.config/os-buddy/config
+# Format: KEY=VALUE, one per line. Environment variables and flags override these.
+
+# Get a key at https://aistudio.google.com/apikey
+GEMINI_API_KEY=
+
+# Model to use (stable default). Try gemini-3.8-flash for the newest one.
+OSBUDDY_MODEL=gemini-3.6-flash
+
+# Stop after this many steps per goal.
+OSBUDDY_MAX_STEPS=30

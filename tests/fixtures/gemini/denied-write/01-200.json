@@ -1,0 +1,1 @@
+{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"id":"w-1","name":"write_file","args":{"path":"should-not-exist.txt","content":"hello"}},"thoughtSignature":"sig-w-1"}]},"finishReason":"STOP"}]}

@@ -1,0 +1,13 @@
+# editor settings
+.zed/
+.vscode/
+.idea/
+
+# secrets, never commit
+.env
+config
+*.key
+
+# temp and test output
+*.tmp
+tests/tmp/

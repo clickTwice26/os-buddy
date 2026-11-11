@@ -1,0 +1,57 @@
+# lib/ui.sh: messages and prompts for the human.
+# Loaded with "source". Never run directly.
+#
+# Rule: all messages go to stderr. stdout is kept for the final answer only,
+# so scripts can do: result=$(os-buddy "goal").
+
+# Colours only when stderr is a terminal and NO_COLOR is not set.
+if [[ -t 2 && -z "${NO_COLOR:-}" ]]; then
+  UI_RED=$'\e[31m' UI_GREEN=$'\e[32m' UI_YELLOW=$'\e[33m'
+  UI_BLUE=$'\e[34m' UI_DIM=$'\e[2m' UI_BOLD=$'\e[1m' UI_RESET=$'\e[0m'
+else
+  UI_RED="" UI_GREEN="" UI_YELLOW="" UI_BLUE="" UI_DIM="" UI_BOLD="" UI_RESET=""
+fi
+
+ui_info()    { printf '%s==>%s %s\n'      "$UI_BLUE"   "$UI_RESET" "$*" >&2; }
+ui_success() { printf '%sok:%s %s\n'      "$UI_GREEN"  "$UI_RESET" "$*" >&2; }
+ui_warn()    { printf '%swarning:%s %s\n' "$UI_YELLOW" "$UI_RESET" "$*" >&2; }
+ui_error()   { printf '%serror:%s %s\n'   "$UI_RED"    "$UI_RESET" "$*" >&2; }
+
+# Extra detail, shown only with --verbose.
+ui_debug() {
+  [[ "${OSBUDDY_VERBOSE:-0}" == 1 ]] || return 0
+  printf '%sdebug: %s%s\n' "$UI_DIM" "$*" "$UI_RESET" >&2
+}
+
+# Print a block of text (a preview or a diff), dimmed and indented.
+ui_block() {
+  printf '%s' "$UI_DIM" >&2
+  sed 's/^/    /' >&2          # reads the block from stdin
+  printf '%s' "$UI_RESET" >&2
+}
+
+# True when a human is at the keyboard (stdin and stderr are terminals).
+ui_is_interactive() {
+  [[ -t 0 && -t 2 ]]
+}
+
+# Ask yes/no. Returns 0 for yes, 1 for no.
+# Default is NO (just Enter = no). With no human present, the answer is no.
+ui_confirm() {
+  local question="$1" answer
+  ui_is_interactive || return 1
+  printf '%s%s%s [y/N] ' "$UI_BOLD" "$question" "$UI_RESET" >&2
+  read -r answer || { echo >&2; return 1; }     # Ctrl-D counts as no
+  case "$answer" in
+    y|Y|yes|Yes|YES) return 0 ;;
+    *)               return 1 ;;
+  esac
+}
+
+# Ask a free-text question. The answer is printed to stdout.
+ui_ask() {
+  local question="$1" answer
+  printf '%s?%s %s\n> ' "$UI_YELLOW" "$UI_RESET" "$question" >&2
+  read -r answer || return 1
+  printf '%s' "$answer"
+}

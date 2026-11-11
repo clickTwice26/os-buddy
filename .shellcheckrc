@@ -1,0 +1,6 @@
+# .shellcheckrc: settings for ShellCheck (make lint)
+shell=bash
+# lib files are loaded with "source" from paths built at runtime
+disable=SC1090,SC1091
+# ui/config variables are defined in one file and used in others
+disable=SC2034

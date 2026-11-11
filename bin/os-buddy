@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# os-buddy: entry point. Checks the system, loads the libraries,
+# then runs one goal (one-shot mode) or opens a chat.
+#
+# Exit codes: 0 done, 1 error, 2 usage error, 3 step limit reached.
+
+set -u            # using a variable that was never set is an error
+set -o pipefail   # a pipeline fails if any command in it fails
+
+OSBUDDY_VERSION="0.1.0"
+
+# Find this script's real folder, even when it is run through a symlink,
+# so we can load ../lib and ../share from anywhere.
+OSBUDDY_BIN="$(readlink -f "${BASH_SOURCE[0]}")"
+OSBUDDY_ROOT="$(cd "$(dirname "$OSBUDDY_BIN")/.." && pwd)"
+OSBUDDY_LIB="$OSBUDDY_ROOT/lib"
+OSBUDDY_SHARE="$OSBUDDY_ROOT/share"
+
+# Load every library. Order matters: later files use functions from earlier ones.
+for _lib in ui config policy gemini tools agent; do
+  # shellcheck source=/dev/null
+  source "$OSBUDDY_LIB/$_lib.sh" || { echo "os-buddy: cannot load $OSBUDDY_LIB/$_lib.sh" >&2; exit 1; }
+done
+unset _lib
+
+# Print an error and quit with code 1.
+die() {
+  ui_error "$*"
+  exit 1
+}
+
+# Refuse to run on Bash older than 4.4.
+check_bash() {
+  if (( BASH_VERSINFO[0] < 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] < 4) )); then
+    die "Bash 4.4 or newer is required (you have $BASH_VERSION)."
+  fi
+}
+
+# Refuse to run on systems that are not Linux/Unix.
+check_os() {
+  case "$(uname -s)" in
+    Linux|Darwin|*BSD) ;;
+    *) die "unsupported OS '$(uname -s)'. Linux/Unix only." ;;
+  esac
+}
+
+# Make sure the tools we depend on are installed.
+check_deps() {
+  local missing="" cmd
+  for cmd in curl jq; do
+    command -v "$cmd" >/dev/null 2>&1 || missing="$missing $cmd"
+  done
+  [[ -z "$missing" ]] || die "missing required tools:$missing"
+}
+
+# Chat mode: read goals line by line. History is kept between turns.
+chat_loop() {
+  local line
+  ui_info "os-buddy $OSBUDDY_VERSION chat. Type /help for commands, /exit to quit."
+  while true; do
+    # -e gives arrow keys and line editing; the prompt goes to stderr.
+    if ! read -r -e -p "you> " line; then
+      echo >&2
+      break                       # Ctrl-D ends the chat
+    fi
+    case "$line" in
+      "")      continue ;;
+      /exit)   break ;;
+      /reset)  agent_reset; ui_success "history cleared" ;;
+      /help)   ui_info "/reset clears memory, /exit quits. Anything else is a goal." ;;
+      *)       agent_run_goal "$line" ;;   # errors are shown, chat continues
+    esac
+  done
+  return 0
+}
+
+main() {
+  check_bash
+  check_os
+  check_deps
+
+  config_load
+  config_parse_args "$@"     # may exit with 0 (--help) or 2 (bad flag)
+
+  [[ -n "${GEMINI_API_KEY:-}" ]] ||
+    die "GEMINI_API_KEY is not set. Export it, or put it in $OSBUDDY_CONFIG_FILE"
+
+  agent_init
+
+  if [[ -n "$OSBUDDY_GOAL" ]]; then
+    agent_run_goal "$OSBUDDY_GOAL"
+    exit $?
+  fi
+
+  if ! ui_is_interactive; then
+    ui_error "no goal given and no terminal for chat. Usage: os-buddy \"goal\""
+    exit 2
+  fi
+  chat_loop
+}
+
+main "$@"

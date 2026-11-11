@@ -1,0 +1,1 @@
+{"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"id":"loop-2","name":"run_command","args":{"command":"pwd"}},"thoughtSignature":"sig-loop-2"}]},"finishReason":"STOP"}]}
