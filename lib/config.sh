@@ -50,6 +50,7 @@ Usage:
   os-buddy                 open a chat (/reset, /help, /exit)
   os-buddy "goal"          complete one task, then exit
   os-buddy disk [PATH]     disk usage report (no API key needed)
+  os-buddy health          system health report (no API key needed)
 
 Options:
   -y, --yes            approve all "ask" actions (blocked ones stay blocked)

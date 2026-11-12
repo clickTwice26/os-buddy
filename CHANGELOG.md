@@ -8,6 +8,9 @@ Format: [Keep a Changelog](https://keepachangelog.com), versions: [Semantic Vers
 ### Added
 - `os-buddy disk [PATH]`: disk monitoring report with usage bars, alert levels
   (exit code 4 warning, 5 critical) and the biggest items in a folder. Needs no API key.
+- `os-buddy health`: uptime, CPU usage, load, memory, swap and the fullest disk with bars
+  and one verdict (exit code 4 warning, 5 critical). Works on Linux (/proc) and macOS
+  (sysctl, vm_stat); macOS parsing is tested with sample output.
 - `lib/viz.sh`: drawing kit for terminal reports (titles, bars, badges, boxed tables).
 - `lib/render.sh`: chat answers are shown as clean terminal text (headings, bullets,
   boxed tables, no Markdown symbols or emoji). Piped output stays plain Markdown.
