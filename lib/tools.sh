@@ -71,7 +71,7 @@ tool_run_command() {
   [[ -n "$cmd" ]] || { tools_error "command is empty" "$out"; return; }
 
   tools_check "$(policy_check_command "$cmd")" "$cmd" "$out" || return
-  ui_info "\$ $cmd"
+  ui_step run "$cmd"
 
   dir="$(mktemp -d)"
   # env -u: the API key never reaches commands the agent runs.
@@ -107,7 +107,7 @@ tool_read_file() {
   [[ -r "$path" ]] || { tools_error "permission denied: $path" "$out"; return; }
 
   tools_check "$(policy_check_read "$path")" "read $path" "$out" || return
-  ui_info "read $path"
+  ui_step read "$path"
 
   tmp="$(mktemp)"
   # Number each line so the model can refer to lines.

@@ -103,7 +103,7 @@ agent_run_goal() {
     # 3. No tool calls means the model is finished: print its text to stdout.
     n="$(jq '[.candidates[0].content.parts[] | select(.functionCall)] | length' "$resp")"
     if (( n == 0 )); then
-      jq -r '[.candidates[0].content.parts[] | select(.text and (.thought | not)) | .text] | join("")' "$resp"
+      jq -r '[.candidates[0].content.parts[] | select(.text and (.thought | not)) | .text] | join("")' "$resp" | render_answer
       [[ "$(jq -r '.candidates[0].finishReason // ""' "$resp")" == MAX_TOKENS ]] &&
         ui_warn "the answer was cut off (MAX_TOKENS)"
       return 0

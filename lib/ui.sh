@@ -17,6 +17,22 @@ ui_success() { printf '%sok:%s %s\n'      "$UI_GREEN"  "$UI_RESET" "$*" >&2; }
 ui_warn()    { printf '%swarning:%s %s\n' "$UI_YELLOW" "$UI_RESET" "$*" >&2; }
 ui_error()   { printf '%serror:%s %s\n'   "$UI_RED"    "$UI_RESET" "$*" >&2; }
 
+# One short, dim line for each action the agent takes:
+#   ui_step run "free -h"   ->   > run   free -h
+# A long or multi-line command is cut to its first line, so the screen
+# shows what happens without a wall of shell code.
+ui_step() {
+  local kind="$1" text="$2" first more="" max
+  first="${text%%$'\n'*}"
+  if [[ "$first" != "$text" ]]; then
+    more=" (+$(( $(printf '%s\n' "$text" | wc -l) - 1 )) lines)"
+  fi
+  max=$(( ${COLUMNS:-80} - 20 ))
+  (( max < 20 )) && max=20
+  (( ${#first} > max )) && first="${first:0:max}..."
+  printf '%s  > %-5s %s%s%s\n' "$UI_DIM" "$kind" "$first" "$more" "$UI_RESET" >&2
+}
+
 # Extra detail, shown only with --verbose.
 ui_debug() {
   [[ "${OSBUDDY_VERBOSE:-0}" == 1 ]] || return 0

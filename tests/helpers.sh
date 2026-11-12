@@ -34,7 +34,7 @@ load_libs() {
   OSBUDDY_SHARE="$ROOT/share"
   OSBUDDY_CONFIG_FILE=/nonexistent
   local lib
-  for lib in ui config policy gemini tools agent; do
+  for lib in ui config policy gemini tools agent viz render; do
     # shellcheck source=/dev/null
     source "$ROOT/lib/$lib.sh"
   done
