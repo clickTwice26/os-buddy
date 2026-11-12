@@ -65,9 +65,9 @@ admin_cmd_disk() {
     level="$(viz_level "$pct")"
     case "$level" in
       crit) alerts+=("crit|$mount is $pct% full, only $(admin_human_kb "$free") left")
-            status="$(admin_worse "$status" $ADMIN_CRIT)" ;;
+            status="$(admin_worse "$status" "$ADMIN_CRIT")" ;;
       warn) alerts+=("warn|$mount is $pct% full")
-            status="$(admin_worse "$status" $ADMIN_WARN)" ;;
+            status="$(admin_worse "$status" "$ADMIN_WARN")" ;;
     esac
   done < <(admin_disk_list)
 

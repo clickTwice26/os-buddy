@@ -69,7 +69,7 @@ assert_contains "$(jq -r .error "$res")" "no human" "ask_user fails without a hu
 # ---- approvals: always, groups, the prompt ----
 OSBUDDY_YES=0
 tools_approve ask "mkdir x" mkdir 2> /dev/null; assert_eq 1 "$?" "no human: denied"
-TOOLS_ALWAYS[mkdir]=1
+TOOLS_ALWAYS["mkdir"]=1
 tools_approve ask "mkdir x" mkdir 2> /dev/null; assert_eq 0 "$?" "always-allowed key runs"
 tools_approve block "rm -rf /" rm 2> /dev/null; assert_eq 2 "$?" "blocked even when always-allowed exists"
 TOOLS_ALWAYS=()

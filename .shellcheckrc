@@ -4,3 +4,7 @@ shell=bash
 disable=SC1090,SC1091
 # ui/config variables are defined in one file and used in others
 disable=SC2034
+# The safety regexes and test snippets hold a literal "$" on purpose
+disable=SC2016
+# Tests use "check && pass || fail"; pass always succeeds, so it is safe
+disable=SC2015

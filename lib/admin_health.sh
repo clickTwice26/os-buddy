@@ -243,9 +243,9 @@ admin_cmd_health() {
     level="$(viz_level "$pct")"
     case "$level" in
       crit) issues+=("crit|$name is at $pct% ($detail)")
-            status="$(admin_worse "$status" $ADMIN_CRIT)" ;;
+            status="$(admin_worse "$status" "$ADMIN_CRIT")" ;;
       warn) issues+=("warn|$name is at $pct% ($detail)")
-            status="$(admin_worse "$status" $ADMIN_WARN)" ;;
+            status="$(admin_worse "$status" "$ADMIN_WARN")" ;;
     esac
   done
 
