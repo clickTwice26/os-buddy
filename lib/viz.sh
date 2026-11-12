@@ -67,7 +67,7 @@ viz_title() {
   line="$(viz_repeat "$VIZ_H" "$w")"
   printf '%s%s%s\n' "$VIZ_CYAN" "$line" "$VIZ_RESET"
   printf '%s %s%s  %s%s  %s%s\n' "$VIZ_BOLD" "$1" "$VIZ_RESET" \
-    "$VIZ_DIM" "$(hostname)" "$(date '+%Y-%m-%d %H:%M:%S')" "$VIZ_RESET"
+    "$VIZ_DIM" "$(uname -n)" "$(date '+%Y-%m-%d %H:%M:%S')" "$VIZ_RESET"
   printf '%s%s%s\n' "$VIZ_CYAN" "$line" "$VIZ_RESET"
 }
 

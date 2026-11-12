@@ -1,0 +1,88 @@
+# .github/workflows/test.yml: run the offline test suite on many systems.
+# Real macOS machines come from GitHub (free for public repos). Linux
+# versions run in Docker containers, including the oldest Bash we
+# support (4.4). The tests never call the real Gemini API, so no secret
+# is needed.
+
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: macOS ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-15]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      # macOS ships Bash 3.2, so install a current Bash (as users must too).
+      - name: Install Bash and jq
+        run: brew install bash jq
+      - name: Show versions
+        run: |
+          bash --version | head -n 1
+          sw_vers
+      - name: Run tests
+        run: bash tests/run.sh
+      # The reports exit with 4 (warning) or 5 (critical) on a busy machine.
+      - name: Admin reports run on a real Mac
+        run: |
+          for cmd in disk health; do
+            rc=0
+            bin/os-buddy "$cmd" || rc=$?
+            case "$rc" in 0|4|5) ;; *) echo "os-buddy $cmd failed ($rc)"; exit 1 ;; esac
+          done
+
+  linux:
+    name: Linux ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: bash:4.4          # oldest supported Bash (Alpine based)
+            setup: apk add --no-cache jq curl procps coreutils
+          - image: bash:5.2
+            setup: apk add --no-cache jq curl procps coreutils
+          - image: ubuntu:22.04
+            setup: apt-get update -qq && apt-get install -y -qq jq curl procps > /dev/null
+          - image: ubuntu:24.04
+            setup: apt-get update -qq && apt-get install -y -qq jq curl procps > /dev/null
+          - image: debian:12
+            setup: apt-get update -qq && apt-get install -y -qq jq curl procps > /dev/null
+          - image: fedora:41
+            setup: dnf install -y -q jq procps-ng findutils diffutils
+          - image: alpine:3.20
+            setup: apk add --no-cache bash jq curl procps coreutils
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # docker run (not "container:"), because GitHub's own actions
+      # cannot run inside Alpine-based images such as bash:4.4.
+      - name: Run tests in ${{ matrix.image }}
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src "${{ matrix.image }}" sh -c '
+            set -e
+            ${{ matrix.setup }}
+            bash --version | head -n 1
+            bash tests/run.sh
+            for cmd in disk health; do
+              rc=0
+              bin/os-buddy "$cmd" > /dev/null || rc=$?
+              case "$rc" in 0|4|5) ;; *) echo "os-buddy $cmd failed ($rc)"; exit 1 ;; esac
+            done'
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: ShellCheck
+        run: shellcheck bin/os-buddy lib/*.sh install.sh tests/*.sh tests/fixtures/fake-curl.sh

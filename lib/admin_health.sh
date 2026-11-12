@@ -210,7 +210,7 @@ admin_cmd_health() {
   viz_title "System health"
 
   viz_section "System"
-  viz_kv "Host" "$(hostname)"
+  viz_kv "Host" "$(uname -n)"
   viz_kv "OS" "$(health_os)"
   viz_kv "Kernel" "$(uname -sr) ($(uname -m))"
   viz_kv "Uptime" "$(health_format_uptime "$(health_uptime_seconds)")"
