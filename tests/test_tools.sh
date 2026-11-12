@@ -66,4 +66,38 @@ assert_eq $'a = 1\nb = [.*]' "$(cat e.txt)" "edit_file replaces exact text once"
 call ask_user '{"question":"which?"}'
 assert_contains "$(jq -r .error "$res")" "no human" "ask_user fails without a human"
 
+# ---- approvals: always, groups, the prompt ----
+OSBUDDY_YES=0
+tools_approve ask "mkdir x" mkdir 2> /dev/null; assert_eq 1 "$?" "no human: denied"
+TOOLS_ALWAYS[mkdir]=1
+tools_approve ask "mkdir x" mkdir 2> /dev/null; assert_eq 0 "$?" "always-allowed key runs"
+tools_approve block "rm -rf /" rm 2> /dev/null; assert_eq 2 "$?" "blocked even when always-allowed exists"
+TOOLS_ALWAYS=()
+TOOLS_BATCH=all
+tools_approve ask "touch y" "" 2> /dev/null; assert_eq 0 "$?" "group answer: all"
+TOOLS_BATCH=none
+tools_approve ask "touch y" "" 2> /dev/null; assert_eq 1 "$?" "group answer: none"
+TOOLS_BATCH=all
+tools_approve block "mkfs /dev/sda" "" 2> /dev/null; assert_eq 2 "$?" "group answer never unblocks"
+TOOLS_BATCH=""
+
+printf '%s' '{"command":"df -h"}' > a.json
+assert_eq "" "$(tools_needs_approval run_command a.json)" "read-only call needs no approval"
+printf '%s' '{"command":"apt install htop","reason":"install a viewer"}' > a.json
+assert_eq $'apt install htop\tinstall a viewer\t\'apt\' is not on the read-only list, so it may change something' \
+  "$(tools_needs_approval run_command a.json)" "change needs approval, with reason and risk"
+
+# The prompt itself, with a pretend human typing answers.
+ui_is_interactive() { return 0; }
+printf 'y\n' | ui_approve "touch x" "" "" "why" 2> /dev/null; assert_eq 0 "$?" "prompt: y = yes"
+printf '\n'  | ui_approve "touch x" "" "" "why" 2> /dev/null; assert_eq 1 "$?" "prompt: Enter = no"
+printf 'a\n' | ui_approve "touch x" "" "touch" "why" 2> /dev/null; assert_eq 3 "$?" "prompt: a = always"
+printf 'a\nn\n' | ui_approve "sudo x" "" "" "why" 2> /dev/null; assert_eq 1 "$?" "prompt: no 'a' when not offered"
+out="$(printf 'y\n' | ui_approve "touch x" "make a file" "" "it may change files" 2>&1)"
+assert_contains "$out" "reason: make a file" "prompt shows the reason"
+assert_contains "$out" "risk:   it may change files" "prompt shows the risk"
+printf 'o\n' | ui_approve_batch $'a\tr\tx' $'b\t\t' 2> /dev/null; assert_eq 2 "$?" "group prompt: one by one"
+out="$(printf 'n\n' | ui_approve_batch $'mkdir d\tfor backups\tmay change' 2>&1)"
+assert_contains "$out" "risk:   may change" "group prompt shows the risk"
+
 finish

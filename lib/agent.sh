@@ -72,6 +72,33 @@ agent_trim() {
     mv "$AGENT_HISTORY.tmp" "$AGENT_HISTORY"
 }
 
+# When one model reply asks for 2 or more actions that need a "yes",
+# show them together and ask once (all, none, or one by one).
+# Sets TOOLS_BATCH for tools_approve. Blocked actions stay blocked.
+agent_group_approval() {
+  local resp="$1" n="$2" i label
+  local -a labels=()
+  TOOLS_BATCH=""
+  (( n >= 2 )) || return 0
+  [[ "$OSBUDDY_YES" == 1 ]] && return 0
+  ui_is_interactive || return 0
+
+  for (( i = 0; i < n; i++ )); do
+    jq --argjson i "$i" '[.candidates[0].content.parts[] | select(.functionCall)][$i].functionCall' \
+      "$resp" > "$AGENT_DIR/gcall.json"
+    jq '.args // {}' "$AGENT_DIR/gcall.json" > "$AGENT_DIR/gargs.json"
+    label="$(tools_needs_approval "$(jq -r '.name' "$AGENT_DIR/gcall.json")" "$AGENT_DIR/gargs.json")"
+    [[ -n "$label" ]] && labels+=("$label")
+  done
+  (( ${#labels[@]} >= 2 )) || return 0
+
+  ui_approve_batch "${labels[@]}"
+  case $? in
+    0) TOOLS_BATCH=all ;;
+    1) TOOLS_BATCH=none ;;
+  esac
+}
+
 # Work on one goal until done. Returns 0 done, 1 error, 3 step limit.
 agent_run_goal() {
   local d="$AGENT_DIR" resp="$AGENT_DIR/response.json"
@@ -110,6 +137,7 @@ agent_run_goal() {
     fi
 
     # 4. Run every tool call in order. Collect all results into one user turn.
+    agent_group_approval "$resp" "$n"
     echo '[]' > "$d/parts.json"
     for (( i = 0; i < n; i++ )); do
       jq --argjson i "$i" '[.candidates[0].content.parts[] | select(.functionCall)][$i].functionCall' "$resp" > "$d/call.json"
@@ -135,6 +163,7 @@ agent_run_goal() {
         "$d/parts.json" > "$d/parts.tmp" && mv "$d/parts.tmp" "$d/parts.json"
     done
 
+    TOOLS_BATCH=""                      # a group answer covers this reply only
     jq -n --slurpfile p "$d/parts.json" '{role: "user", parts: $p[0]}' > "$d/item.json"
     agent_push "$d/item.json"
   done

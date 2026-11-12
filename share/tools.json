@@ -6,7 +6,8 @@
       "type": "object",
       "properties": {
         "command": { "type": "string", "description": "The shell command to run." },
-        "timeout_seconds": { "type": "integer", "description": "Stop the command after this many seconds. Default 120." }
+        "timeout_seconds": { "type": "integer", "description": "Stop the command after this many seconds. Default 120." },
+        "reason": { "type": "string", "description": "One short sentence: why this step is needed. Shown to the user when approval is needed." }
       },
       "required": ["command"]
     }
@@ -31,7 +32,8 @@
       "type": "object",
       "properties": {
         "path": { "type": "string", "description": "Path of the file." },
-        "content": { "type": "string", "description": "The full new content." }
+        "content": { "type": "string", "description": "The full new content." },
+        "reason": { "type": "string", "description": "One short sentence: why this step is needed. Shown to the user when approval is needed." }
       },
       "required": ["path", "content"]
     }
@@ -44,7 +46,8 @@
       "properties": {
         "path": { "type": "string", "description": "Path of the file." },
         "old_text": { "type": "string", "description": "The exact text to replace, with enough context to be unique." },
-        "new_text": { "type": "string", "description": "The replacement text." }
+        "new_text": { "type": "string", "description": "The replacement text." },
+        "reason": { "type": "string", "description": "One short sentence: why this step is needed. Shown to the user when approval is needed." }
       },
       "required": ["path", "old_text", "new_text"]
     }

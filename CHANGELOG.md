@@ -16,6 +16,12 @@ Format: [Keep a Changelog](https://keepachangelog.com), versions: [Semantic Vers
   boxed tables, no Markdown symbols or emoji). Piped output stays plain Markdown.
 
 ### Changed
+- Fewer approval prompts: read-only commands no longer ask, including `2>/dev/null`,
+  `2>&1`, `&&`, `||`, `;` chains of read-only parts, `|` inside quotes, and more read-only
+  programs (lsblk, lscpu, free, ss, ip, systemctl status, journalctl, smartctl -H, ...).
+- Smarter prompt: `[y]es [n]o [a]lways (this program, this chat) [?] why`, with the
+  model's reason. "Always" is never offered for sudo, rm, kill and similar.
+- Several actions in one model reply are listed together: all, none, or one by one.
 - Tool calls are shown as one short dim line each, instead of the full command.
 - System prompt asks for terminal-friendly answers: no intro line, tables for numbers, no emoji.
 

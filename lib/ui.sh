@@ -64,6 +64,55 @@ ui_confirm() {
   esac
 }
 
+# Ask before one action. Enter alone means NO.
+#   $1 the action   $2 the model's reason (may be empty)
+#   $3 what "always" covers (empty: the option is not offered)   $4 why it asks
+# Returns 0 yes, 1 no, 3 always. With no human present, the answer is no.
+ui_approve() {
+  local action="$1" reason="$2" always="$3" why="$4" answer opts
+  ui_is_interactive || return 1
+  printf '\n%s%s? approval needed%s\n' "$UI_YELLOW" "$UI_BOLD" "$UI_RESET" >&2
+  printf '    %s%s%s\n' "$UI_BOLD" "$action" "$UI_RESET" >&2
+  [[ -n "$reason" ]] && printf '    %sreason:%s %s\n' "$UI_DIM" "$UI_RESET" "$reason" >&2
+  [[ -n "$why" ]]    && printf '    %srisk:%s   %s%s%s\n' "$UI_DIM" "$UI_RESET" "$UI_YELLOW" "$why" "$UI_RESET" >&2
+  opts="[y] yes  [n] no"
+  [[ -n "$always" ]] && opts+="  [a] always allow '$always' in this chat"
+  while true; do
+    printf '  %s%s%s > ' "$UI_DIM" "$opts" "$UI_RESET" >&2
+    read -r answer || { echo >&2; return 1; }   # Ctrl-D counts as no
+    case "$answer" in
+      y|Y|yes|Yes|YES) return 0 ;;
+      ""|n|N|no|No|NO) return 1 ;;
+      a|A) [[ -n "$always" ]] && return 3 ;;
+    esac
+  done
+}
+
+# Ask once for several actions from the same model reply.
+#   arguments: one "action<TAB>reason<TAB>risk" line per action
+# Returns 0 all, 1 none, 2 decide one by one.
+ui_approve_batch() {
+  local line action reason risk answer i=0
+  ui_is_interactive || return 1
+  printf '\n%s%s? %d actions need approval%s\n' "$UI_YELLOW" "$UI_BOLD" "$#" "$UI_RESET" >&2
+  for line in "$@"; do
+    i=$(( i + 1 ))
+    IFS=$'\t' read -r action reason risk <<< "$line"
+    printf '  %2d. %s%s%s\n' "$i" "$UI_BOLD" "$action" "$UI_RESET" >&2
+    [[ -n "$reason" ]] && printf '      %sreason:%s %s\n' "$UI_DIM" "$UI_RESET" "$reason" >&2
+    [[ -n "$risk" ]]   && printf '      %srisk:%s   %s%s%s\n' "$UI_DIM" "$UI_RESET" "$UI_YELLOW" "$risk" "$UI_RESET" >&2
+  done
+  while true; do
+    printf '  %s[y] all  [n] none  [o] one by one%s > ' "$UI_DIM" "$UI_RESET" >&2
+    read -r answer || { echo >&2; return 1; }
+    case "$answer" in
+      y|Y|yes) return 0 ;;
+      ""|n|N|no) return 1 ;;
+      o|O) return 2 ;;
+    esac
+  done
+}
+
 # Ask a free-text question. The answer is printed to stdout.
 ui_ask() {
   local question="$1" answer

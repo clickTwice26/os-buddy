@@ -18,16 +18,64 @@ tools_truncate_file() {
   } > "$file.cut" && mv "$file.cut" "$file"
 }
 
+# Session memory for approvals.
+#   TOOLS_ALWAYS[key]=1  the user pressed "a" (always allow) for this key
+#   TOOLS_BATCH          all|none: the user already answered for a group of
+#                        calls (see agent_group_approval); empty otherwise
+declare -gA TOOLS_ALWAYS=()
+TOOLS_BATCH=""
+
 # Decide if an action may go ahead.
 #   $1 policy decision (allow|ask|block)   $2 what to show the human
+#   $3 key for "always allow" (empty: not offered)
+#   $4 the model's reason   $5 why the policy asks
 # Returns 0 = go, 1 = denied, 2 = blocked.
 tools_approve() {
-  case "$1" in
+  local decision="$1" label="$2" key="${3:-}" reason="${4:-}" why="${5:-it may change something}" rc
+  case "$decision" in
     allow) return 0 ;;
-    block) ui_error "BLOCKED by policy: $2"; return 2 ;;
+    block) ui_error "BLOCKED by policy: $label"; return 2 ;;
   esac
-  [[ "$OSBUDDY_YES" == 1 ]] && { ui_info "auto-approved (--yes): $2"; return 0; }
-  ui_confirm "Allow: $2 ?"
+  if [[ -n "$key" && -n "${TOOLS_ALWAYS[$key]:-}" ]]; then
+    ui_step auto "$label"
+    return 0
+  fi
+  case "$TOOLS_BATCH" in
+    all)  return 0 ;;
+    none) return 1 ;;
+  esac
+  [[ "$OSBUDDY_YES" == 1 ]] && { ui_info "auto-approved (--yes): $label"; return 0; }
+
+  ui_approve "$label" "$reason" "$key" "$why"; rc=$?
+  if (( rc == 3 )); then              # "a": remember the key for this chat
+    TOOLS_ALWAYS[$key]=1
+    return 0
+  fi
+  return "$rc"
+}
+
+# Does this tool call need a human "yes"? If so, print "label<TAB>reason<TAB>risk".
+# Used to show all the calls of one model reply together.
+tools_needs_approval() {
+  local name="$1" args="$2" cmd path key=""
+  case "$name" in
+    run_command)
+      cmd="$(jq -r '.command // ""' "$args")"
+      [[ "$(policy_check_command "$cmd")" == ask ]] || return 0
+      policy_can_always "$cmd" && key="$(policy_program "$cmd")"
+      [[ -n "$key" && -n "${TOOLS_ALWAYS[$key]:-}" ]] && return 0
+      printf '%s\t%s\t%s\n' "$cmd" "$(jq -r '.reason // ""' "$args")" "$(policy_explain "$cmd")" ;;
+    write_file|edit_file)
+      path="$(jq -r '.path // ""' "$args")"
+      [[ -n "${TOOLS_ALWAYS["changes to $path"]:-}" ]] && return 0
+      printf '%s %s\t%s\t%s\n' "${name%_file}" "$path" "$(jq -r '.reason // ""' "$args")" \
+        "$([[ "$name" == write_file ]] && echo "writing replaces the whole file" || echo "editing changes the file")" ;;
+    read_file)
+      path="$(jq -r '.path // ""' "$args")"
+      [[ "$(policy_check_read "$path")" == ask ]] &&
+        printf 'read %s\t\t%s\n' "$path" "it is a private file; its content would be sent to Gemini" ;;
+  esac
+  return 0
 }
 
 # Write a small error result: {"error": "..."}.
@@ -50,10 +98,11 @@ tools_dispatch() {
 }
 
 # Turn an approval result into an error for the model, if needed.
+#   $1 decision  $2 label  $3 result file  $4 always key  $5 reason  $6 why
 # Returns 0 when the action may run.
 tools_check() {
   local decision="$1" label="$2" out="$3" rc
-  tools_approve "$decision" "$label"; rc=$?
+  tools_approve "$decision" "$label" "${4:-}" "${5:-}" "${6:-}"; rc=$?
   case $rc in
     0) return 0 ;;
     2) tools_error "blocked by safety policy; do not try to work around it" "$out" ;;
@@ -64,13 +113,16 @@ tools_check() {
 
 # ---- run_command(command, timeout_seconds) ----
 tool_run_command() {
-  local args="$1" out="$2" cmd timeout dir pid watcher code timed_out=false
+  local args="$1" out="$2" cmd timeout dir pid watcher code timed_out=false key
   cmd="$(jq -r '.command // ""' "$args")"
   timeout="$(jq -r '.timeout_seconds // 120' "$args")"
   [[ "$timeout" =~ ^[0-9]+$ ]] || timeout=120
   [[ -n "$cmd" ]] || { tools_error "command is empty" "$out"; return; }
 
-  tools_check "$(policy_check_command "$cmd")" "$cmd" "$out" || return
+  key=""
+  policy_can_always "$cmd" && key="$(policy_program "$cmd")"
+  tools_check "$(policy_check_command "$cmd")" "$cmd" "$out" "$key" \
+    "$(jq -r '.reason // ""' "$args")" "$(policy_explain "$cmd")" || return
   ui_step run "$cmd"
 
   dir="$(mktemp -d)"
@@ -106,7 +158,8 @@ tool_read_file() {
   [[ -f "$path" ]] || { tools_error "not a file: $path" "$out"; return; }
   [[ -r "$path" ]] || { tools_error "permission denied: $path" "$out"; return; }
 
-  tools_check "$(policy_check_read "$path")" "read $path" "$out" || return
+  tools_check "$(policy_check_read "$path")" "read $path" "$out" "" "" \
+    "it is a private file (keys, passwords or .env); its content would be sent to Gemini" || return
   ui_step read "$path"
 
   tmp="$(mktemp)"
@@ -127,7 +180,8 @@ tool_write_file() {
 
   ui_info "write $path ($(jq -r '.content // "" | length' "$args") chars). Preview:"
   jq -r '.content // ""' "$args" | head -n 20 | ui_block
-  tools_check ask "write $path" "$out" || return      # writing always asks
+  tools_check ask "write $path" "$out" "changes to $path" \
+    "$(jq -r '.reason // ""' "$args")" "writing replaces the whole file" || return   # writing always asks
 
   if jq -j '.content // ""' "$args" > "$path" 2>/dev/null; then
     jq -n --arg p "$path" '{ok: true, path: $p}' > "$out"
@@ -156,7 +210,8 @@ tool_edit_file() {
 
   ui_info "edit $path:"
   diff -u "$path" "$new" | tail -n +3 | ui_block
-  if tools_check ask "edit $path" "$out"; then
+  if tools_check ask "edit $path" "$out" "changes to $path" \
+       "$(jq -r '.reason // ""' "$args")" "editing changes the file"; then
     if cat "$new" > "$path"; then
       jq -n --arg p "$path" '{ok: true, path: $p}' > "$out"
     else
