@@ -32,10 +32,12 @@ out="$("$OSBUDDY" backup create "$src" 2>&1)"
 [[ "$out" == *"already made this second"* || "$(ls "$OSBUDDY_BACKUP_DIR"/*.tar.gz | wc -l)" -eq 2 ]] &&
   pass "never overwrites a backup" || fail "never overwrites a backup" "$out"
 
-# Rotation: with two older copies present, only the newest 2 are kept.
-cp "$file" "$OSBUDDY_BACKUP_DIR/my_docs-20200101-000000.tar.gz"
-cp "$file" "$OSBUDDY_BACKUP_DIR/my_docs-20210101-000000.tar.gz"
-rm -f "$file" "$file.sha256"
+# Rotation: with exactly two older copies present, only the newest 2 are kept.
+# (The folder is reset first, so the result does not depend on timing.)
+cp "$file" "$TEST_TMP/saved.tar.gz"
+rm -f "$OSBUDDY_BACKUP_DIR"/*
+cp "$TEST_TMP/saved.tar.gz" "$OSBUDDY_BACKUP_DIR/my_docs-20200101-000000.tar.gz"
+cp "$TEST_TMP/saved.tar.gz" "$OSBUDDY_BACKUP_DIR/my_docs-20210101-000000.tar.gz"
 "$OSBUDDY" backup create "$src" > /dev/null
 left="$(ls "$OSBUDDY_BACKUP_DIR"/my_docs-*.tar.gz | wc -l | tr -d ' ')"
 assert_eq 2 "$left" "rotation keeps the newest 2"

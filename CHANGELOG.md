@@ -16,6 +16,10 @@ Format: [Keep a Changelog](https://keepachangelog.com), versions: [Semantic Vers
 - `os-buddy backup`: `create` (tar.gz + SHA-256, keeps the newest N), `list`, `verify`
   (exit code 5 for a damaged backup), `restore` (only into a new or empty folder, never
   from a damaged backup), `schedule`/`unschedule` with cron.
+- `os-buddy users`: people accounts, administrators, who is logged in, recent logins;
+  `add NAME [--admin]`, `lock`, `unlock`, `delete` (home folder kept). Uses useradd/usermod
+  (Linux), busybox tools (Alpine) or sysadminctl/pwpolicy (macOS). root, your own account
+  and system accounts are refused.
 - `--yes` and `--dry-run` work for every admin command; changes show the exact command first.
 - `lib/viz.sh`: drawing kit for terminal reports (titles, bars, badges, boxed tables).
 - `lib/render.sh`: chat answers are shown as clean terminal text (headings, bullets,
