@@ -201,14 +201,15 @@ users_add() {
   fi
 }
 
-# Busybox "passwd -l" fails with "unchanged" when the account is already
+# Busybox "passwd -l" fails ("already locked") when the account is already
 # locked (a new account has no password, so it starts locked). That is
 # the state we want, so it counts as success.
 users_busybox_passwd() {
   local out rc
   out="$("$@" 2>&1)"; rc=$?
   [[ -n "$out" ]] && printf '    %s\n' "$out"
-  if (( rc != 0 )) && [[ "$out" == *unchanged* ]]; then
+  # Busybox versions word it as "already locked", "unchanged" or "not locked".
+  if (( rc != 0 )) && [[ "$out" == *already* || "$out" == *unchanged* || "$out" == *"not locked"* ]]; then
     viz_badge info "no change needed: the account was already in that state"
     return 0
   fi
