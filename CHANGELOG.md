@@ -11,6 +11,9 @@ Format: [Keep a Changelog](https://keepachangelog.com), versions: [Semantic Vers
 - `os-buddy health`: uptime, CPU usage, load, memory, swap and the fullest disk with bars
   and one verdict (exit code 4 warning, 5 critical). Works on Linux (/proc) and macOS
   (sysctl, vm_stat); macOS parsing is tested with sample output.
+- `os-buddy proc`: process summary and top 10 by CPU and memory; `proc find WORD`;
+  `proc kill PID [--force]` asks first and never stops PID 1 or os-buddy itself.
+- `--yes` and `--dry-run` work for every admin command; changes show the exact command first.
 - `lib/viz.sh`: drawing kit for terminal reports (titles, bars, badges, boxed tables).
 - `lib/render.sh`: chat answers are shown as clean terminal text (headings, bullets,
   boxed tables, no Markdown symbols or emoji). Piped output stays plain Markdown.

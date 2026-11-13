@@ -17,7 +17,7 @@ OSBUDDY_LIB="$OSBUDDY_ROOT/lib"
 OSBUDDY_SHARE="$OSBUDDY_ROOT/share"
 
 # Load every library. Order matters: later files use functions from earlier ones.
-for _lib in ui config policy gemini tools agent viz render admin admin_disk admin_health; do
+for _lib in ui config policy gemini tools agent viz render admin admin_disk admin_health admin_proc; do
   # shellcheck source=/dev/null
   source "$OSBUDDY_LIB/$_lib.sh" || { echo "os-buddy: cannot load $OSBUDDY_LIB/$_lib.sh" >&2; exit 1; }
 done
