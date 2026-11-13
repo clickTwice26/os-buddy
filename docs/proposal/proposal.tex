@@ -1,0 +1,243 @@
+% =============================================================================
+%  Project Proposal -- os-buddy
+%  Cover and design follow the "Cubicle - Project Report" (Times text, plain
+%  black headings, grey-header tables, DIU cover page).
+%  Build:  pdflatex proposal.tex   (run twice so cross-references resolve)
+%  Edit the "Project details" and "Team" blocks below; everything else follows.
+% =============================================================================
+\documentclass[11pt,a4paper]{article}
+
+% ---------- Fonts: Times text, Latin Modern Mono for code --------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}                 % provides the Latin Modern Mono code font
+\usepackage{times}                   % Times (Nimbus Roman) for text
+\renewcommand{\ttdefault}{lmtt}
+\usepackage{microtype}
+
+% ---------- Layout ----------------------------------------------------------
+\usepackage[a4paper,top=2.3cm,bottom=2.2cm,left=2.5cm,right=2.5cm,headheight=14pt]{geometry}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{caption}
+\usepackage[hidelinks]{hyperref}
+
+% ---------- Project details (edit these) ------------------------------------
+\newcommand{\projectname}{os-buddy}
+\newcommand{\projectsubtitle}{An Agentic Operating-System Operator in Bash,\\ Designed with the PEAS Model}
+\newcommand{\coursecode}{CSE000}
+\newcommand{\coursetitle}{Course Title}
+\newcommand{\proposaldate}{13 November 2026}
+
+% ---------- Team (edit names, IDs, e-mails) ---------------------------------
+\newcommand{\memA}{Tamzidul Haque}
+\newcommand{\memB}{Umma Iman Monea}
+\newcommand{\memC}{Puja Chowdhury}
+\newcommand{\memD}{Tamima Rahman}
+\newcommand{\memE}{Shagato Chowdhury}
+
+\hypersetup{pdftitle={os-buddy: Project Proposal},pdfsubject={Group project proposal},
+  pdfkeywords={agentic AI, Bash, Gemini, PEAS, operating system}}
+
+% ---------- Look and feel (matches the report) ------------------------------
+\setlength{\parindent}{1.5em}
+\setlength{\parskip}{0pt}
+\renewcommand{\arraystretch}{1.15}
+\definecolor{hdrgrey}{gray}{0.90}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+  {1.6ex \@plus .4ex \@minus .2ex}{0.8ex \@plus .2ex}{\normalfont\large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+  {1.2ex \@plus .3ex \@minus .2ex}{0.5ex \@plus .2ex}{\normalfont\normalsize\bfseries}}
+\makeatother
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\footnotesize\projectname: Project Proposal}
+\fancyhead[R]{\footnotesize\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Grey table header and compact lists
+\newcommand{\hdrrow}{\rowcolor{hdrgrey}}
+\usepackage{colortbl}
+\newcommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{2pt}\setlength{\parskip}{0pt}}
+\newcommand{\lead}[1]{\textbf{#1}}
+\newcolumntype{R}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+\begin{document}
+
+% =============================================================================
+%  COVER PAGE
+% =============================================================================
+\thispagestyle{empty}
+\begin{center}
+  \vspace*{1.6cm}
+  \includegraphics[width=0.52\textwidth]{diu-logo.png}\\[1.0em]
+  {\bfseries Faculty of Science and Information Technology}\\
+  Department of Computer Science and Engineering\\[2.4em]
+  \rule{\linewidth}{0.5pt}\\[2.2em]
+  {\fontsize{40}{44}\selectfont\bfseries \projectname}\\[0.6em]
+  {\Large \projectsubtitle}\\[2.2em]
+  \rule{\linewidth}{0.5pt}\\[2.2em]
+  {\small A project proposal submitted for \quad \textbf{\coursecode\ $|$ \coursetitle}}\\[1.4em]
+
+  {\small\bfseries SUBMITTED BY}\\[0.3em]
+  \begingroup\small
+  \begin{tabular}{@{}p{4.4cm}p{2.2cm}p{6.0cm}@{}}
+    \hline
+    \hdrrow \textbf{Name} & \textbf{Student ID} & \textbf{Email} \\ \hline
+    \memA & 241-15-877 & {\scriptsize\texttt{tamzidul241-15-877@diu.edu.bd}} \\ \hline
+    \memB & 241-15-540 & {\scriptsize\texttt{iman241-15-540@diu.edu.bd}} \\ \hline
+    \memC & 241-15-493 & {\scriptsize\texttt{puja241-15-493@diu.edu.bd}} \\ \hline
+    \memD & 241-15-030 & {\scriptsize\texttt{rahman241-15-030@diu.edu.bd}} \\ \hline
+    \memE & 241-15-331 & {\scriptsize\texttt{shagato241-15-331@diu.edu.bd}} \\ \hline
+  \end{tabular}\\[1.2em]
+
+  {\small\bfseries SUPERVISED BY}\\[0.3em]
+  \begin{tabular}{@{}p{13.45cm}@{}}
+    \hline
+    \hdrrow \textbf{Dr. Abdus Sattar} \\ \hline
+    Associate Professor and Director, M.Sc. in CSE\\
+    Department of Computer Science and Engineering\\
+    Faculty of Science and Information Technology, Daffodil International University \\ \hline
+  \end{tabular}\\[1.2em]
+  \endgroup
+  {\small \proposaldate}
+\end{center}
+\newpage
+\setcounter{page}{1}
+
+% =============================================================================
+%  BODY (pages 1--2)
+% =============================================================================
+{\LARGE\bfseries Project Proposal}\\[-0.1em]
+\rule{\linewidth}{0.8pt}\vspace{0.4em}
+
+\section{Project Title and Description}
+
+\subsection{Title}
+\textbf{\projectname: An Agentic Operating-System Operator in Bash, Designed with the PEAS Model}
+
+\subsection{Description}
+Operating a Unix system means remembering many commands, their flags and their risks.
+\lead{\projectname} lowers that barrier. The user states a goal in plain English, such as
+``find the three largest files in this folder''; the agent plans, runs commands, reads and
+edits files, checks the result of every action and continues until the goal is met or it can
+report honestly that it has failed. It is written entirely in Bash and uses Google's Gemini
+function-calling interface to choose each next step, with the conversation history serving as
+its internal state. This makes it a goal-based, model-based agent.
+
+\lead{A fixed safety policy sits between the model and the system.} The policy is Bash code
+that the model cannot override: read-only commands run automatically, changes ask for the
+user's approval, and dangerous patterns such as \code{rm -rf /} are always blocked. The tool
+runs on Linux and Unix-like systems (Bash 4.4+, \code{curl}, \code{jq}) in two modes, an
+interactive chat with memory and a one-shot mode (\code{os-buddy "goal"}) with meaningful exit
+codes. Two extra commands, \code{os-buddy disk} and \code{os-buddy health}, print system
+reports without an API key.
+
+\subsection{Problem and Objectives}
+Language models can suggest shell commands, but running them blindly is unsafe and chat-only
+assistants leave verification to the user. The project builds an agent that finishes
+multi-step tasks while keeping the user in control. Its objectives are:
+\begin{itemize}\tightlist
+  \item a working plan--act--observe--verify agent loop in pure Bash;
+  \item a three-level safety policy (allow, ask, block) with zero bypasses;
+  \item a robust Gemini integration (retries, blocked and empty responses) that never
+        exposes the API key in process listings or child environments;
+  \item an offline test suite and continuous integration on macOS and several Linux versions.
+\end{itemize}
+
+\section{Design Approach and Scope}
+The agent is specified with the PEAS framework (Table~\ref{tab:peas}). The code is a small
+entry point plus focused modules (\code{lib/agent.sh}, \code{gemini.sh}, \code{policy.sh},
+\code{tools.sh}, \code{ui.sh}), with prompt text and tool declarations kept as data files.
+\emph{Out of scope:} Windows support, a graphical interface, and state-changing actions
+without approval.
+
+\begin{table}[h]
+\centering
+\caption{PEAS summary of \projectname.}
+\label{tab:peas}
+\small
+\begin{tabularx}{\linewidth}{@{}|>{\bfseries}p{2.2cm}|X|@{}}
+\hline
+\hdrrow Component & \textbf{Specification} \\ \hline
+Performance & Goal completion with verification; no policy bypass; recovery from failed
+  commands; at most 30 steps; resilience to API errors; exit codes 0 done, 1 error, 2 usage,
+  3 step limit. \\ \hline
+Environment & Local Linux or Unix host, a human at a terminal (or none), the Gemini API and
+  untrusted file content; partially observable, stochastic and sequential. \\ \hline
+Actuators & Shell commands, file read and write, user questions and approval prompts, all
+  passed through the policy layer. \\ \hline
+Sensors & Command output and exit status, file contents, system facts and user replies. \\ \hline
+\end{tabularx}
+\end{table}
+
+\newpage
+\section{Team Contributions}
+The project is carried out by a group of five. Work is divided by component rather than by
+feature, so each member owns an interface and can work without waiting for the others.
+
+\begin{table}[h]
+\centering
+\caption{Division of work within the group.}
+\label{tab:team}
+\small
+\begin{tabularx}{\linewidth}{@{}|R{3.3cm}|R{3.6cm}|X|@{}}
+\hline
+\hdrrow \textbf{Member} & \textbf{Primary responsibility} & \textbf{Principal contribution} \\ \hline
+\memE & Architecture, agent core & PEAS design, agent loop, stuck detection, history trimming,
+  CLI entry point, chat and one-shot modes, release \\ \hline
+\memA & Safety policy & Allow/ask/block classification, dangerous-pattern list, approval
+  prompts, secret-scanning commit hook \\ \hline
+\memB & Gemini integration & API client and retries, tool declarations, system prompt,
+  configuration precedence, API-key protection \\ \hline
+\memC & Tools and reports & Tool implementations with timeouts and truncation, \code{disk}
+  and \code{health} reports, terminal rendering \\ \hline
+\memD & Testing, CI, documentation & Offline test runner and scripted fixtures, CI and ShellCheck,
+  README, design document, final report \\ \hline
+\multicolumn{3}{|l|}{\cellcolor{hdrgrey}\textbf{Shared by the whole group}} \\ \hline
+\multicolumn{3}{|l|}{Requirements analysis, architecture decisions, code review, demonstration} \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{Plan and Expected Outcome}
+\begin{table}[h]
+\centering
+\caption{Planned schedule.}
+\label{tab:plan}
+\small
+\begin{tabularx}{\linewidth}{@{}|R{1.6cm}|X|R{5.0cm}|@{}}
+\hline
+\hdrrow \textbf{Weeks} & \textbf{Milestone} & \textbf{Lead} \\ \hline
+1--2 & Requirements, PEAS design, repository and tooling & \memE, \memD \\ \hline
+3--4 & Gemini client, tool declarations, basic agent loop & \memB, \memE \\ \hline
+5--6 & Safety policy, approvals, tools and reports & \memA, \memC \\ \hline
+7--8 & Integration, tests and CI, final report, demonstration & \memD, all \\ \hline
+\end{tabularx}
+\end{table}
+
+\lead{Expected outcome.} A working \code{os-buddy} command with documentation, an offline test
+suite and a demonstration of the agent completing real system tasks safely. Each performance
+measure has a check: scripted multi-step scenarios for goal completion, a table of bypass
+attempts for the policy, stubbed API errors for resilience, and exit-code tests. The main risks
+are a harmful command proposed by the model (mitigated by the policy layer), prompt injection
+through file content (tool output is treated as data and every change needs approval), and
+API outages (retries and clear errors).
+
+\section*{References}
+\begingroup\small
+\begin{enumerate}\tightlist
+  \item S.~Russell and P.~Norvig, \emph{Artificial Intelligence: A Modern Approach}, 4th ed., Pearson, 2020.
+  \item Google AI for Developers, ``Gemini API: Function calling,'' \texttt{ai.google.dev}.
+  \item GNU Project, \emph{Bash Reference Manual}, \texttt{gnu.org/software/bash}.
+\end{enumerate}
+\endgroup
+
+\end{document}

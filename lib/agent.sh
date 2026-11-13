@@ -75,6 +75,7 @@ agent_trim() {
 # When one model reply asks for 2 or more actions that need a "yes",
 # show them together and ask once (all, none, or one by one).
 # Sets TOOLS_BATCH for tools_approve. Blocked actions stay blocked.
+
 agent_group_approval() {
   local resp="$1" n="$2" i label
   local -a labels=()
