@@ -12,7 +12,7 @@ and 24.04, Debian 12, Fedora 41, Alpine 3.20).
 
 ## Quick start
 
-Needs Linux or macOS, Bash 4.4+ (macOS ships 3.2: run `brew install bash`), `curl` and `jq`.
+Needs Linux or macOS, Bash 4.4+ (macOS ships 3.2: run `brew install bash`), `curl` and `jq`. On Windows, run it inside [WSL](https://learn.microsoft.com/windows/wsl/install) (`wsl --install`); Git Bash and Cygwin are not supported.
 The admin reports need no API key. The AI agent needs a Gemini API key from
 [Google AI Studio](https://aistudio.google.com/apikey).
 

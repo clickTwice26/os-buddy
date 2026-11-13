@@ -37,10 +37,16 @@ check_bash() {
 }
 
 # Refuse to run on systems that are not Linux/Unix.
+# WSL reports "Linux", so it passes. Git Bash / MSYS2 / Cygwin on Windows
+# report MINGW*, MSYS* or CYGWIN*: they lack /proc and the Unix tools we use.
 check_os() {
-  case "$(uname -s)" in
+  local os
+  os="$(uname -s)"
+  case "$os" in
     Linux|Darwin|*BSD) ;;
-    *) die "unsupported OS '$(uname -s)'. Linux/Unix only." ;;
+    MINGW*|MSYS*|CYGWIN*)
+      die "Windows ('$os') is not supported directly. Run os-buddy inside WSL (Windows Subsystem for Linux): open PowerShell, run 'wsl --install', restart, then use os-buddy in the Ubuntu terminal." ;;
+    *) die "unsupported OS '$os'. Linux/Unix only." ;;
   esac
 }
 

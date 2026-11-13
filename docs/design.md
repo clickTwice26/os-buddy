@@ -40,7 +40,7 @@ The agent is judged on these measures, and each one has a check.
 
 **What the agent operates in:**
 
-- A local Linux or Unix host: shell, filesystem, processes and installed tools. Windows is rejected at startup through a `uname` check.
+- A local Linux or Unix host: shell, filesystem, processes and installed tools. Native Windows shells (Git Bash, MSYS2, Cygwin) are rejected at startup through a `uname` check, with a hint to use WSL, which reports itself as Linux and works unchanged.
 - A human operator at a terminal, or no human at all in scripts and cron.
 - The Gemini API over the network.
 - Untrusted content: file contents and command output may contain text that tries to instruct the agent.

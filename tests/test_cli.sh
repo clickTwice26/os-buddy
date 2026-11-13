@@ -41,4 +41,14 @@ out="$(env -u GEMINI_API_KEY -u OSBUDDY_CONFIG_FILE OSBUDDY_ROOT="$fake_root" ba
   echo "$GEMINI_API_KEY"')"
 assert_eq "from-dotenv" "$out" "project .env is loaded automatically"
 
+# Windows shells (Git Bash, MSYS2, Cygwin) are refused with a WSL hint.
+# A fake "uname" earlier in PATH pretends to be Git Bash.
+fake_bin="$TEST_TMP/fakebin"
+mkdir -p "$fake_bin"
+printf '#!/bin/sh\necho MINGW64_NT-10.0-19045\n' > "$fake_bin/uname"
+chmod +x "$fake_bin/uname"
+out="$(PATH="$fake_bin:$PATH" GEMINI_API_KEY=x "$OSBUDDY" "goal" < /dev/null 2>&1)"; code=$?
+assert_eq 1 "$code" "Windows shell exits 1"
+assert_contains "$out" "WSL" "Windows shell gets a WSL hint"
+
 finish
