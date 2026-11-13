@@ -29,30 +29,40 @@ assert_contains "$(tar -tzf "$file")" "my docs/sub/b.txt" "archive holds the fil
 
 # A second backup in the same second must not replace the first.
 out="$("$OSBUDDY" backup create "$src" 2>&1)"
-[[ "$out" == *"already made this second"* || "$(ls "$OSBUDDY_BACKUP_DIR"/*.tar.gz | wc -l)" -eq 2 ]] &&
+count_archives() { find "$OSBUDDY_BACKUP_DIR" -name "${1:-*}.tar.gz" | wc -l | tr -d ' '; }
+[[ "$out" == *"already made this second"* || "$(count_archives)" -eq 2 ]] &&
   pass "never overwrites a backup" || fail "never overwrites a backup" "$out"
 
 # Rotation: with exactly two older copies present, only the newest 2 are kept.
 # (The folder is reset first, so the result does not depend on timing.)
 cp "$file" "$TEST_TMP/saved.tar.gz"
 rm -f "$OSBUDDY_BACKUP_DIR"/*
-cp "$TEST_TMP/saved.tar.gz" "$OSBUDDY_BACKUP_DIR/my_docs-20200101-000000.tar.gz"
-cp "$TEST_TMP/saved.tar.gz" "$OSBUDDY_BACKUP_DIR/my_docs-20210101-000000.tar.gz"
+sha() { if command -v sha256sum > /dev/null; then sha256sum "$1"; else shasum -a 256 "$1"; fi | awk '{ print $1 }'; }
+for old in my_docs-20200101-000000 my_docs-20210101-000000; do
+  cp "$TEST_TMP/saved.tar.gz" "$OSBUDDY_BACKUP_DIR/$old.tar.gz"
+  printf '%s  %s\n' "$(sha "$OSBUDDY_BACKUP_DIR/$old.tar.gz")" "$old.tar.gz" > "$OSBUDDY_BACKUP_DIR/$old.tar.gz.sha256"
+done
 "$OSBUDDY" backup create "$src" > /dev/null
-left="$(ls "$OSBUDDY_BACKUP_DIR"/my_docs-*.tar.gz | wc -l | tr -d ' ')"
+left="$(count_archives 'my_docs-*')"
 assert_eq 2 "$left" "rotation keeps the newest 2"
 [[ ! -e "$OSBUDDY_BACKUP_DIR/my_docs-20200101-000000.tar.gz" ]] && pass "oldest backup removed" || fail "oldest backup removed"
 
 # List and verify.
 out="$("$OSBUDDY" backup list)"
 assert_contains "$out" "my_docs-" "list shows the archive"
-file="$(ls "$OSBUDDY_BACKUP_DIR"/my_docs-2026*.tar.gz "$OSBUDDY_BACKUP_DIR"/my_docs-20[3-9]*.tar.gz 2> /dev/null | head -n 1)"
-[[ -n "$file" ]] || file="$(ls "$OSBUDDY_BACKUP_DIR"/my_docs-*.tar.gz | tail -n 1)"
+# The newest backup (not the 2021 copy).
+file="$(find "$OSBUDDY_BACKUP_DIR" -name 'my_docs-*.tar.gz' ! -name '*-20210101-*' | head -n 1)"
 "$OSBUDDY" backup verify "$(basename "$file")" > /dev/null; assert_eq 0 "$?" "a good backup verifies"
-printf 'junk' >> "$OSBUDDY_BACKUP_DIR/my_docs-20210101-000000.tar.gz"
+# Damage the middle of the 2021 copy (some tar versions ignore junk at the end).
+printf 'XXXXXXXX' | dd of="$OSBUDDY_BACKUP_DIR/my_docs-20210101-000000.tar.gz" bs=1 seek=40 conv=notrunc 2> /dev/null
 out="$("$OSBUDDY" backup verify)"; rc=$?
 assert_eq 5 "$rc" "a damaged backup is critical"
 assert_contains "$out" "DAMAGED" "damage is shown"
+
+# A backup without a checksum file cannot be fully checked: warning.
+cp "$file" "$OSBUDDY_BACKUP_DIR/nosum-20220101-000000.tar.gz"
+"$OSBUDDY" backup verify nosum-20220101-000000.tar.gz > /dev/null; assert_eq 4 "$?" "no checksum gives a warning"
+rm -f "$OSBUDDY_BACKUP_DIR/nosum-20220101-000000.tar.gz"
 
 # Restore: needs approval, only into a new or empty folder.
 "$OSBUDDY" backup restore "$(basename "$file")" "$TEST_TMP/out" > /dev/null 2>&1

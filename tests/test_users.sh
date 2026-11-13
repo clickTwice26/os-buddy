@@ -42,7 +42,9 @@ if [[ "${OSBUDDY_TEST_REAL_USERS:-0}" == 1 && "$EUID" == 0 ]]; then
   "$OSBUDDY" users add osb-test-user --admin --yes > /dev/null 2>&1
   id osb-test-user > /dev/null 2>&1 && pass "real: user added" || fail "real: user added"
   assert_contains "$(id -Gn osb-test-user)" "$(getent group sudo > /dev/null && echo sudo || echo wheel)" "real: user is admin"
-  "$OSBUDDY" users lock osb-test-user --yes > /dev/null 2>&1; assert_eq 0 "$?" "real: lock works"
+  out="$("$OSBUDDY" users lock osb-test-user --yes 2>&1)"; rc=$?
+  assert_eq 0 "$rc" "real: lock works"
+  (( rc == 0 )) || printf '%s\n' "$out" | tail -n 5
   "$OSBUDDY" users unlock osb-test-user --yes > /dev/null 2>&1
   rc=$?
   # A user with no password cannot be unlocked by some tools (it would

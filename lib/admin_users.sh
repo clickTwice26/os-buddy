@@ -201,6 +201,20 @@ users_add() {
   fi
 }
 
+# Busybox "passwd -l" fails with "unchanged" when the account is already
+# locked (a new account has no password, so it starts locked). That is
+# the state we want, so it counts as success.
+users_busybox_passwd() {
+  local out rc
+  out="$("$@" 2>&1)"; rc=$?
+  [[ -n "$out" ]] && printf '    %s\n' "$out"
+  if (( rc != 0 )) && [[ "$out" == *unchanged* ]]; then
+    viz_badge info "no change needed: the account was already in that state"
+    return 0
+  fi
+  return "$rc"
+}
+
 users_lock() {
   local name="$1" action="$2"
   users_check "$name" existing || return $?
@@ -220,9 +234,11 @@ users_lock() {
     fi
   else
     if [[ "$action" == lock ]]; then
-      admin_exec "Block password logins" "${USERS_SUDO[@]}" passwd -l "$name" || return 1
+      ADMIN_SHOW="${USERS_SUDO[*]:+${USERS_SUDO[*]} }passwd -l $name" \
+        admin_exec "Block password logins" users_busybox_passwd "${USERS_SUDO[@]}" passwd -l "$name" || return 1
     else
-      admin_exec "Allow password logins" "${USERS_SUDO[@]}" passwd -u "$name" || return 1
+      ADMIN_SHOW="${USERS_SUDO[*]:+${USERS_SUDO[*]} }passwd -u $name" \
+        admin_exec "Allow password logins" users_busybox_passwd "${USERS_SUDO[@]}" passwd -u "$name" || return 1
     fi
   fi
   [[ "$ADMIN_DRY_RUN" == 1 ]] && return 0

@@ -49,10 +49,12 @@ admin_confirm() {
 # Run a command that changes the system, after showing it and asking.
 #   admin_exec "what it does" command [args...]
 # Returns the command's exit code, 1 when not approved, 0 for --dry-run.
+# ADMIN_SHOW="text" admin_exec ...  shows "text" instead of the command
+# (used when the command is a small helper function around the real one).
 admin_exec() {
   local what="$1" shown
   shift
-  shown="$(printf '%q ' "$@")"
+  shown="${ADMIN_SHOW:-$(printf '%q ' "$@")}"
   printf '  %s%s%s\n    %s$ %s%s\n' "$VIZ_BOLD" "$what" "$VIZ_RESET" \
     "$VIZ_DIM" "${shown% }" "$VIZ_RESET"
   if [[ "$ADMIN_DRY_RUN" == 1 ]]; then

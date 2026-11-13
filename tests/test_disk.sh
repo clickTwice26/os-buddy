@@ -27,6 +27,7 @@ assert_contains "$out" "not a folder" "missing folder is reported"
 # The df parser: header, fake disks and snap loops are skipped,
 # and a mount point with a space stays whole.
 load_libs
+# shellcheck disable=SC2329  # this stand-in for df is called by admin_disk_list
 df() {
   printf '%s\n' 'Filesystem 1024-blocks Used Available Capacity Mounted on' \
     'tmpfs 100 1 99 1% /run' \

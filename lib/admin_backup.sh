@@ -222,6 +222,8 @@ backup_verify() {
       if tar -tzf "$f" > /dev/null 2>&1; then arch="yes"; else arch="NO"; fi
       if [[ "$sum" == DIFFERENT || "$arch" == NO ]]; then
         printf '%s\t%s\t%s\t%s\n' "$(basename "$f")" "$sum" "$arch" "${VIZ_RED}DAMAGED$VIZ_RESET"
+      elif [[ "$sum" == missing ]]; then
+        printf '%s\t%s\t%s\t%s\n' "$(basename "$f")" "$sum" "$arch" "${VIZ_YELLOW}UNSURE$VIZ_RESET"
       else
         printf '%s\t%s\t%s\t%s\n' "$(basename "$f")" "$sum" "$arch" "${VIZ_GREEN}OK$VIZ_RESET"
       fi
@@ -229,11 +231,16 @@ backup_verify() {
   } | viz_table
 
   # Count damaged ones outside the pipe (variables set in a pipe are lost).
+  # Without a checksum, damage can be missed (some tar versions ignore
+  # junk at the end of a file), so that is a warning, not "OK".
   for f in "${files[@]}"; do
     saved="$(awk '{ print $1 }' "$f.sha256" 2> /dev/null)"
     if { [[ -n "$saved" && "$saved" != "$(backup_sha256 "$f")" ]]; } || ! tar -tzf "$f" > /dev/null 2>&1; then
       viz_badge crit "$(basename "$f") is damaged: do not rely on it"
       status=$ADMIN_CRIT
+    elif [[ -z "$saved" ]]; then
+      viz_badge warn "$(basename "$f") has no checksum file, so damage cannot be ruled out"
+      status="$(admin_worse "$status" "$ADMIN_WARN")"
     fi
   done
   (( status == ADMIN_OK )) && viz_badge ok "all ${#files[@]} backup(s) are intact"
