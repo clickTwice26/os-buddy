@@ -20,6 +20,14 @@ Format: [Keep a Changelog](https://keepachangelog.com), versions: [Semantic Vers
   `add NAME [--admin]`, `lock`, `unlock`, `delete` (home folder kept). Uses useradd/usermod
   (Linux), busybox tools (Alpine) or sysadminctl/pwpolicy (macOS). root, your own account
   and system accounts are refused.
+- `os-buddy status`: one dashboard with health, top 5 processes, users and backups, and one
+  verdict (warns when there are no backups or the newest is older than 7 days).
+- AI tool `system_report` (status, health, disk, proc, users, backup): exact reports for the
+  model, read-only, no approval. The system prompt points the model to it and to the safe
+  admin commands for changes.
+- Chat shortcuts: `/status`, `/health`, `/disk`, `/proc ...`, `/users`, `/backup ...` run the
+  reports directly, without an AI call.
+- Health alerts above 100% read as "N x what the cores can run".
 - `--yes` and `--dry-run` work for every admin command; changes show the exact command first.
 - `lib/viz.sh`: drawing kit for terminal reports (titles, bars, badges, boxed tables).
 - `lib/render.sh`: chat answers are shown as clean terminal text (headings, bullets,

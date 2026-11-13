@@ -34,7 +34,7 @@ load_libs() {
   OSBUDDY_SHARE="$ROOT/share"
   OSBUDDY_CONFIG_FILE=/nonexistent
   local lib
-  for lib in ui config policy gemini tools agent viz render admin admin_disk admin_health admin_proc admin_backup admin_users; do
+  for lib in ui config policy gemini tools agent viz render admin admin_disk admin_health admin_proc admin_backup admin_users admin_status; do
     # shellcheck source=/dev/null
     source "$ROOT/lib/$lib.sh"
   done

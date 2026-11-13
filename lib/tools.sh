@@ -93,6 +93,7 @@ tools_dispatch() {
     write_file)  tool_write_file  "$args" "$out" ;;
     edit_file)   tool_edit_file   "$args" "$out" ;;
     ask_user)    tool_ask_user    "$args" "$out" ;;
+    system_report) tool_system_report "$args" "$out" ;;
     *)           tools_error "unknown tool: $name" "$out" ;;
   esac
 }
@@ -230,4 +231,27 @@ tool_ask_user() {
   fi
   answer="$(ui_ask "$(jq -r '.question // ""' "$args")")" || answer=""
   jq -n --arg a "$answer" '{answer: $a}' > "$out"
+}
+
+# ---- system_report(report) ----
+# Runs one read-only admin report (os-buddy status, health, ...) and gives
+# the model its text. Only the fixed names below are accepted, and none of
+# them changes anything, so no approval is needed.
+tool_system_report() {
+  local args="$1" out="$2" name text code
+  name="$(jq -r '.report // ""' "$args")"
+  case "$name" in
+    status|health|disk|proc|users|backup) ;;
+    *) tools_error "unknown report '$name'; use status, health, disk, proc, users or backup" "$out"; return ;;
+  esac
+  ui_step report "$name"
+  # In a subshell with colours off: the model needs plain text.
+  text="$(
+    VIZ_RED="" VIZ_GREEN="" VIZ_YELLOW="" VIZ_CYAN="" VIZ_DIM="" VIZ_BOLD="" VIZ_RESET=""
+    ADMIN_YES=0 ADMIN_DRY_RUN=0
+    admin_run "$name" < /dev/null 2>&1
+  )"
+  code=$?
+  jq -n --arg t "$text" --argjson c "$code" \
+    '{report: $t, exit_code: $c, meaning: "0 fine, 4 warning, 5 critical"}' > "$out"
 }

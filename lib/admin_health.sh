@@ -179,80 +179,91 @@ health_pct() {
 }
 
 # ---- the report ----
+# Split into parts, so "os-buddy status" can reuse the table and verdict.
 
-admin_cmd_health() {
-  case "${1:-}" in
-    -h|--help) admin_health_usage; return 0 ;;
-    "")        ;;
-    *)         ui_error "unknown argument: $1"; admin_health_usage >&2; return 2 ;;
-  esac
-
-  local cores load l1 l5 l15 load_pct cpu mem total used st su
-  local mem_pct swap_pct disk mount dsize dused dpct name level row pct detail i
-  local status=$ADMIN_OK
-  local -a rows=() issues=()
-
-  # 1. Collect every number first, then draw. This keeps the drawing simple.
-  cores="$(health_cores)"
+# Collect every number. Sets HEALTH_CORES and HEALTH_ROWS, one
+# "name|percent|detail" entry per resource.
+health_collect() {
+  local load l1 l5 l15 load_pct cpu mem total used st su disk mount dsize dused dpct
+  HEALTH_CORES="$(health_cores)"
   load="$(health_load)"
   read -r l1 l5 l15 <<< "${load:-0 0 0}"
-  load_pct="$(awk -v l="$l1" -v c="$cores" 'BEGIN { printf "%d", l * 100 / c + 0.5 }')"
+  load_pct="$(awk -v l="$l1" -v c="$HEALTH_CORES" 'BEGIN { printf "%d", l * 100 / c + 0.5 }')"
   cpu="$(health_cpu_pct)"
   mem="$(health_memory)"
   read -r total used st su <<< "${mem:-0 0 0 0}"
-  mem_pct="$(health_pct "$used" "$total")"
-  swap_pct="$(health_pct "$su" "$st")"
 
   # The fullest real disk (from the disk report's list).
   disk="$(admin_disk_list | sort -t $'\t' -k6,6n | tail -n 1)"
   IFS=$'\t' read -r mount _ dsize dused _ dpct <<< "${disk:-/	-	0	0	0	0}"
 
-  viz_title "System health"
-
-  viz_section "System"
-  viz_kv "Host" "$(uname -n)"
-  viz_kv "OS" "$(health_os)"
-  viz_kv "Kernel" "$(uname -sr) ($(uname -m))"
-  viz_kv "Uptime" "$(health_format_uptime "$(health_uptime_seconds)")"
-  viz_kv "CPU cores" "$cores"
-
-  # 2. One table row per resource: name, bar, detail, percent.
-  #    Fields are split by "|" here, and turned into table cells below.
-  rows+=("CPU usage|$cpu|measured over 0.5 s")
-  rows+=("Load (1 min)|$load_pct|$l1 / $l5 / $l15 on $cores cores")
-  rows+=("Memory|$mem_pct|$(admin_human_kb "$used") of $(admin_human_kb "$total")")
+  HEALTH_ROWS=()
+  HEALTH_ROWS+=("CPU usage|$cpu|measured over 0.5 s")
+  HEALTH_ROWS+=("Load (1 min)|$load_pct|$l1 / $l5 / $l15 on $HEALTH_CORES cores")
+  HEALTH_ROWS+=("Memory|$(health_pct "$used" "$total")|$(admin_human_kb "$used") of $(admin_human_kb "$total")")
   if (( st > 0 )); then
-    rows+=("Swap|$swap_pct|$(admin_human_kb "$su") of $(admin_human_kb "$st")")
+    HEALTH_ROWS+=("Swap|$(health_pct "$su" "$st")|$(admin_human_kb "$su") of $(admin_human_kb "$st")")
   fi
-  rows+=("Disk $mount|${dpct:-0}|$(admin_human_kb "$dused") of $(admin_human_kb "$dsize")")
+  HEALTH_ROWS+=("Disk $mount|${dpct:-0}|$(admin_human_kb "$dused") of $(admin_human_kb "$dsize")")
+}
 
-  viz_section "Resources"
+# Draw HEALTH_ROWS as a table with bars and a status column.
+health_table() {
+  local row name pct detail level
   {
     printf 'Resource\tUsage\tDetail\tStatus\n'
-    for row in "${rows[@]}"; do
+    for row in "${HEALTH_ROWS[@]}"; do
       IFS='|' read -r name pct detail <<< "$row"
       level="$(viz_level "$pct")"
       printf '%s\t%s\t%s\t%s\n' "$name" "$(viz_bar "$pct" 20)" "$detail" \
         "$(viz_level_color "$pct")${level^^}$VIZ_RESET"
     done
   } | viz_table
+}
 
-  # 3. The verdict: every warning or critical item, then one overall line.
-  for row in "${rows[@]}"; do
+# One badge per warning or critical resource. Returns 0, 4 or 5.
+health_issues() {
+  local row name pct detail level text status=$ADMIN_OK
+  for row in "${HEALTH_ROWS[@]}"; do
     IFS='|' read -r name pct detail <<< "$row"
     level="$(viz_level "$pct")"
-    case "$level" in
-      crit) issues+=("crit|$name is at $pct% ($detail)")
-            status="$(admin_worse "$status" "$ADMIN_CRIT")" ;;
-      warn) issues+=("warn|$name is at $pct% ($detail)")
-            status="$(admin_worse "$status" "$ADMIN_WARN")" ;;
-    esac
+    [[ "$level" == ok ]] && continue
+    # Above 100% (only load can be) reads better as "N x the cores".
+    if (( pct > 100 )); then
+      text="$name is $(awk -v p="$pct" 'BEGIN { printf "%.1f", p / 100 }')x what the cores can run ($detail)"
+    else
+      text="$name is at $pct% ($detail)"
+    fi
+    viz_badge "$level" "$text"
+    if [[ "$level" == crit ]]; then status="$(admin_worse "$status" "$ADMIN_CRIT")"
+    else status="$(admin_worse "$status" "$ADMIN_WARN")"; fi
   done
+  return "$status"
+}
+
+admin_cmd_health() {
+  local status
+  case "${1:-}" in
+    -h|--help) admin_health_usage; return 0 ;;
+    "")        ;;
+    *)         ui_error "unknown argument: $1"; admin_health_usage >&2; return 2 ;;
+  esac
+
+  health_collect
+
+  viz_title "System health"
+  viz_section "System"
+  viz_kv "Host" "$(uname -n)"
+  viz_kv "OS" "$(health_os)"
+  viz_kv "Kernel" "$(uname -sr) ($(uname -m))"
+  viz_kv "Uptime" "$(health_format_uptime "$(health_uptime_seconds)")"
+  viz_kv "CPU cores" "$HEALTH_CORES"
+
+  viz_section "Resources"
+  health_table
 
   viz_section "Verdict"
-  for i in "${issues[@]}"; do
-    viz_badge "${i%%|*}" "${i#*|}"
-  done
+  health_issues; status=$?
   case "$status" in
     "$ADMIN_OK")   viz_badge ok   "System is healthy" ;;
     "$ADMIN_WARN") viz_badge warn "System needs attention soon" ;;

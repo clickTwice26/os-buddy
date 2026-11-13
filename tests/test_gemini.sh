@@ -34,6 +34,6 @@ assert_contains "$(cat "$FAKE_CURL_STATE/stdin.1.log")" "test-key-123" "API key 
 echo '[{"role":"user","parts":[{"text":"hi"}]}]' > "$TEST_TMP/h.json"
 gemini_build_request "$TEST_TMP/h.json" "$ROOT/share/system-prompt.txt" "$ROOT/share/tools.json" "$TEST_TMP/r.json"
 assert_eq "hi" "$(jq -r '.contents[0].parts[0].text' "$TEST_TMP/r.json")" "request contains the history"
-assert_eq 5 "$(jq '.tools[0].functionDeclarations | length' "$TEST_TMP/r.json")" "request declares 5 tools"
+assert_eq 6 "$(jq '.tools[0].functionDeclarations | length' "$TEST_TMP/r.json")" "request declares 6 tools"
 
 finish

@@ -53,6 +53,17 @@
     }
   },
   {
+    "name": "system_report",
+    "description": "Get an exact, ready-made report of this machine without running shell commands. status = everything in one page; health = CPU, load, memory, swap, fullest disk; disk = every disk; proc = top processes; users = accounts, admins, logins; backup = os-buddy backups and schedules. Read-only, never needs approval. Prefer it over run_command for these topics.",
+    "parameters": {
+      "type": "object",
+      "properties": {
+        "report": { "type": "string", "enum": ["status", "health", "disk", "proc", "users", "backup"], "description": "Which report to get." }
+      },
+      "required": ["report"]
+    }
+  },
+  {
     "name": "ask_user",
     "description": "Ask the human a question when the goal is unclear. Fails when no human is present.",
     "parameters": {

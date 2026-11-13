@@ -114,7 +114,7 @@ viz_level() {
 
 # Key/value line:  viz_kv "Uptime" "3 days"  ->  Uptime        3 days
 viz_kv() {
-  printf '  %s%-14s%s %s\n' "$VIZ_DIM" "$1" "$VIZ_RESET" "$2"
+  printf '  %s%-16s%s %s\n' "$VIZ_DIM" "$1" "$VIZ_RESET" "$2"
 }
 
 # Table from tab-separated lines on stdin. The first line is the header.

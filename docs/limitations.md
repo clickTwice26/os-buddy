@@ -62,8 +62,20 @@ so some commands get through that should not.
 
 | # | Priority | Problem | Fix idea |
 |---|---|---|---|
-| 6.1 | high | Never tested against the **real** Gemini API (no key was available). The request format follows the docs and the tests use a fake. | Run the live test from `docs/design.md` with a real key. |
-| 6.2 | medium | Tested only on Bash 5.3 on Linux. Bash 4.4 support is promised but not checked. | Run `tests/run.sh` in the `bash:4.4` Docker image. |
-| 6.3 | medium | ShellCheck has not been run (not installed). | `sudo apt install shellcheck`, then `make lint`. |
-| 6.4 | low | No tests for chat mode, interactive y/n prompts, history trimming or Ctrl-C. | Use `script` or `expect` to fake a terminal in tests. |
+| 6.1 | low | The offline tests use a fake Gemini API. Real API runs were checked by hand (system stats, file changes, grouped approvals, system_report), not in CI, because CI has no key. | A nightly CI job with a key kept as a GitHub secret. |
+| 6.2 | done | ~~Tested only on Linux.~~ CI now runs every push on macOS 15 (Apple chip and Intel) and in Bash 4.4, Bash 5.2, Ubuntu 22.04/24.04, Debian 12, Fedora 41 and Alpine 3.20 containers. | - |
+| 6.3 | done | ~~ShellCheck has not been run.~~ It runs in CI on every push. | - |
+| 6.4 | low | Chat mode, history trimming and Ctrl-C have no automated tests. The approval prompts are tested with a pretend terminal. | Use `script` or `expect` to fake a terminal in tests. |
 | 6.5 | low | `make` is not installed on the development machine. | `sudo apt install make`, or keep using `bash tests/run.sh`. |
+
+## 7. Admin commands (`lib/admin_*.sh`)
+
+| # | Priority | Limitation | Possible fix |
+|---|---|---|---|
+| 7.1 | medium | On Linux, `ps` shows CPU % as an average over the whole life of a process, not "right now". A process that was busy long ago can still rank high in `proc`. (`health` measures the real current CPU use over 0.5 s.) | Sample `/proc/PID/stat` twice, like `health` does for the whole CPU. |
+| 7.2 | medium | `users add/lock/delete` on macOS (sysadminctl, pwpolicy) are only tested as dry runs and refusals. Linux versions are really tested in CI containers. | A macOS CI step with a throwaway user (runners allow sudo). |
+| 7.3 | medium | `users lock` blocks password logins only. SSH keys still work (the command says so). | Also set the shell to `nologin` or expire the account (`usermod -e 1`). |
+| 7.4 | medium | Backups are local, not encrypted and not copied off the machine. A dead disk loses them too. | Optional `gpg` encryption and an `rsync`/`rclone` copy step. |
+| 7.5 | low | Two backups of the same folder in the same second are refused (file names have the time to the second). | Add a counter to the name. |
+| 7.6 | low | On macOS, cron may need Full Disk Access to read some folders (for example Documents). | Use a `launchd` job on macOS, or grant cron Full Disk Access. |
+| 7.7 | low | `users` shows recent logins only where the `last` command exists (it is missing on some new systems). | Read `wtmpdb` or `journalctl` directly. |

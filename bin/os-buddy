@@ -17,7 +17,7 @@ OSBUDDY_LIB="$OSBUDDY_ROOT/lib"
 OSBUDDY_SHARE="$OSBUDDY_ROOT/share"
 
 # Load every library. Order matters: later files use functions from earlier ones.
-for _lib in ui config policy gemini tools agent viz render admin admin_disk admin_health admin_proc admin_backup admin_users; do
+for _lib in ui config policy gemini tools agent viz render admin admin_disk admin_health admin_proc admin_backup admin_users admin_status; do
   # shellcheck source=/dev/null
   source "$OSBUDDY_LIB/$_lib.sh" || { echo "os-buddy: cannot load $OSBUDDY_LIB/$_lib.sh" >&2; exit 1; }
 done
@@ -55,7 +55,7 @@ check_deps() {
 
 # Chat mode: read goals line by line. History is kept between turns.
 chat_loop() {
-  local line
+  local line cmd rest
   ui_info "os-buddy $OSBUDDY_VERSION chat. Type /help for commands, /exit to quit."
   while true; do
     # -e gives arrow keys and line editing; the prompt goes to stderr.
@@ -67,7 +67,17 @@ chat_loop() {
       "")      continue ;;
       /exit)   break ;;
       /reset)  agent_reset; ui_success "history cleared" ;;
-      /help)   ui_info "/reset clears memory, /exit quits. Anything else is a goal." ;;
+      /help)   ui_info "/status /health /disk /proc /users /backup show a report (they take the same"
+               ui_info "words as the commands, e.g. /proc find ssh). /reset clears memory, /exit quits."
+               ui_info "Anything else is a goal for the AI." ;;
+      /*)      # A report command: run it directly, no AI call needed.
+               read -r cmd rest <<< "${line#/}"
+               if admin_is_command "$cmd"; then
+                 # shellcheck disable=SC2086  # split the rest into words on purpose
+                 ( admin_run "$cmd" $rest )
+               else
+                 ui_error "unknown command /$cmd (try /help)"
+               fi ;;
       *)       agent_run_goal "$line" ;;   # errors are shown, chat continues
     esac
   done
