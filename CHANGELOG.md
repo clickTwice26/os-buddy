@@ -13,6 +13,9 @@ Format: [Keep a Changelog](https://keepachangelog.com), versions: [Semantic Vers
   (sysctl, vm_stat); macOS parsing is tested with sample output.
 - `os-buddy proc`: process summary and top 10 by CPU and memory; `proc find WORD`;
   `proc kill PID [--force]` asks first and never stops PID 1 or os-buddy itself.
+- `os-buddy backup`: `create` (tar.gz + SHA-256, keeps the newest N), `list`, `verify`
+  (exit code 5 for a damaged backup), `restore` (only into a new or empty folder, never
+  from a damaged backup), `schedule`/`unschedule` with cron.
 - `--yes` and `--dry-run` work for every admin command; changes show the exact command first.
 - `lib/viz.sh`: drawing kit for terminal reports (titles, bars, badges, boxed tables).
 - `lib/render.sh`: chat answers are shown as clean terminal text (headings, bullets,

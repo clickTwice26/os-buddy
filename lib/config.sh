@@ -52,6 +52,7 @@ Usage:
   os-buddy disk [PATH]     disk usage report (no API key needed)
   os-buddy health          system health report (no API key needed)
   os-buddy proc [find W | kill PID]   processes: top lists, search, stop
+  os-buddy backup ACTION   create, list, verify, restore, schedule backups
 
 Options:
   -y, --yes            approve all "ask" actions (blocked ones stay blocked)
