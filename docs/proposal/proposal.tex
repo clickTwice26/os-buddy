@@ -7,12 +7,12 @@
 % =============================================================================
 \documentclass[11pt,a4paper]{article}
 
-% ---------- Fonts: Times text, Latin Modern Mono for code --------------------
+% ---------- Font: Times for everything (text, code, e-mails) ----------------
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{lmodern}                 % provides the Latin Modern Mono code font
-\usepackage{times}                   % Times (Nimbus Roman) for text
-\renewcommand{\ttdefault}{lmtt}
+\usepackage{times}                   % Times (Nimbus Roman)
+\usepackage{textcomp}                % Times versions of the bullet and other symbols
+\renewcommand{\labelitemi}{\textbullet}
 \usepackage{microtype}
 
 % ---------- Layout ----------------------------------------------------------
@@ -47,7 +47,7 @@
 \setlength{\parskip}{0pt}
 \renewcommand{\arraystretch}{1.08}
 \definecolor{hdrgrey}{gray}{0.90}
-\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\code}[1]{#1}     % same font as the text
 \captionsetup{font=small,labelfont=bf,skip=4pt}
 
 \makeatletter
@@ -64,7 +64,8 @@
 \renewcommand{\headrulewidth}{0.4pt}
 
 % Grey table header and compact lists
-\newcommand{\hdrrow}{\rowcolor{hdrgrey}}
+% The grey fill stops just short of each cell edge, so the vertical borders stay visible.
+\newcommand{\hdrrow}{\rowcolor{hdrgrey}[\dimexpr\tabcolsep-0.4pt\relax][\dimexpr\tabcolsep-0.4pt\relax]}
 \usepackage{colortbl}
 \newcommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parsep}{0pt}\setlength{\topsep}{2pt}\setlength{\parskip}{0pt}}
 \newcommand{\lead}[1]{\textbf{#1}}
@@ -85,25 +86,25 @@
   {\fontsize{40}{44}\selectfont\bfseries \projectname}\\[0.6em]
   {\Large \projectsubtitle}\\[2.2em]
   \rule{\linewidth}{0.5pt}\\[2.2em]
-  {\small A project proposal submitted for \quad \textbf{\coursecode\ $|$ \coursetitle}}\\[1.4em]
+  {\small A project proposal submitted for \quad \textbf{\coursecode\ \textbar\ \coursetitle}}\\[1.4em]
 
   {\small\bfseries SUBMITTED BY}\\[0.3em]
   \begingroup\small
-  \begin{tabular}{@{}p{4.4cm}p{2.2cm}p{6.0cm}@{}}
+  \begin{tabular}{|p{4.4cm}|p{2.2cm}|p{6.0cm}|}
     \hline
     \hdrrow \textbf{Name} & \textbf{Student ID} & \textbf{Email} \\ \hline
-    \memA & 241-15-811 & {\scriptsize\texttt{zinat241-15-811@diu.edu.bd}} \\ \hline
-    \memB & 241-15-540 & {\scriptsize\texttt{iman241-15-540@diu.edu.bd}} \\ \hline
-    \memC & 241-15-309 & {\scriptsize\texttt{kawsar241-15-309@diu.edu.bd}} \\ \hline
-    \memD & 232-15-675 & {\scriptsize\texttt{ahmed2305101675@diu.edu.bd}} \\ \hline
-    \memE & 241-15-331 & {\scriptsize\texttt{shagato241-15-331@diu.edu.bd}} \\ \hline
+    \memA & 241-15-811 & {\footnotesize{zinat241-15-811@diu.edu.bd}} \\ \hline
+    \memB & 241-15-540 & {\footnotesize{iman241-15-540@diu.edu.bd}} \\ \hline
+    \memC & 241-15-309 & {\footnotesize{kawsar241-15-309@diu.edu.bd}} \\ \hline
+    \memD & 232-15-675 & {\footnotesize{ahmed2305101675@diu.edu.bd}} \\ \hline
+    \memE & 241-15-331 & {\footnotesize{shagato241-15-331@diu.edu.bd}} \\ \hline
   \end{tabular}\\[1.2em]
 
   {\small\bfseries SUPERVISED BY}\\[0.3em]
-  \begin{tabular}{@{}p{13.45cm}@{}}
+  \begin{tabular}{|p{13.45cm}|}
     \hline
-    \hdrrow \textbf{Dr. Abdus Sattar} \\ \hline
-    Associate Professor and Director, M.Sc. in CSE\\
+    \hdrrow \textbf{Ms. Tamanna Sultana} \\ \hline
+    Lecturer\\
     Department of Computer Science and Engineering\\
     Faculty of Science and Information Technology, Daffodil International University \\ \hline
   \end{tabular}\\[1.2em]
@@ -244,8 +245,8 @@ API outages (retries and clear errors).
 \begingroup\small
 \begin{enumerate}\tightlist
   \item S.~Russell and P.~Norvig, \emph{Artificial Intelligence: A Modern Approach}, 4th ed., Pearson, 2020.
-  \item Google AI for Developers, ``Gemini API: Function calling,'' \texttt{ai.google.dev}.
-  \item GNU Project, \emph{Bash Reference Manual}, \texttt{gnu.org/software/bash}.
+  \item Google AI for Developers, ``Gemini API: Function calling,'' ai.google.dev.
+  \item GNU Project, \emph{Bash Reference Manual}, gnu.org/software/bash.
 \end{enumerate}
 \endgroup
 
