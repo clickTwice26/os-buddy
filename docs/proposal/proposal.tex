@@ -138,8 +138,11 @@ that the model cannot override: read-only commands run automatically, changes as
 user's approval, and dangerous patterns such as \code{rm -rf /} are always blocked. The tool
 runs on Linux and Unix-like systems (Bash 4.4+, \code{curl}, \code{jq}) in two modes, an
 interactive chat with memory and a one-shot mode (\code{os-buddy "goal"}) with meaningful exit
-codes. Two extra commands, \code{os-buddy disk} and \code{os-buddy health}, print system
-reports without an API key.
+codes. Six admin commands need no API key: \code{status}, \code{health}, \code{disk},
+\code{proc}, \code{backup} and \code{users} cover system health, disk monitoring, process
+management, backup automation and user management, each with a visual terminal report and
+exit codes for scripts (0 fine, 4 warning, 5 critical). Every change they make shows the
+exact command and asks first; the agent can read the same reports to answer questions.
 
 \subsection{Problem and Objectives}
 Language models can suggest shell commands, but running them blindly is unsafe and chat-only
@@ -148,6 +151,7 @@ multi-step tasks while keeping the user in control. Its objectives are:
 \begin{itemize}\tightlist
   \item a working plan--act--observe--verify agent loop in pure Bash;
   \item a three-level safety policy (allow, ask, block) with zero bypasses;
+  \item fixed, safe admin scripts for the five core administration tasks, usable without AI;
   \item a robust Gemini integration (retries, blocked and empty responses) that never
         exposes the API key in process listings or child environments;
   \item an offline test suite and continuous integration on macOS and several Linux versions.
@@ -155,10 +159,13 @@ multi-step tasks while keeping the user in control. Its objectives are:
 
 \section{Design Approach and Scope}
 The agent is specified with the PEAS framework (Table~\ref{tab:peas}). The code is a small
-entry point plus focused modules (\code{lib/ai/agent.sh}, \code{gemini.sh}, \code{policy.sh},
-\code{tools.sh}, \code{ui.sh}), with prompt text and tool declarations kept as data files.
-\emph{Out of scope:} Windows support, a graphical interface, and state-changing actions
-without approval.
+entry point plus three groups of short, single-purpose modules: \code{lib/core} (messages,
+prompts, settings, drawing), \code{lib/admin} (one file per admin command) and \code{lib/ai}
+(\code{policy.sh}, \code{gemini.sh}, \code{tools.sh}, \code{agent.sh}). Each rule lives in one
+place, for example whether a tool call needs approval, so the code stays easy to read and
+change. Prompt text and tool declarations are kept as data files.
+\emph{Out of scope:} native Windows (WSL is the supported route), a graphical interface,
+and state-changing actions without approval.
 
 \begin{table}[h]
 \centering
@@ -174,8 +181,10 @@ Performance & Goal completion with verification; no policy bypass; recovery from
 Environment & Local Linux or Unix host, a human at a terminal (or none), the Gemini API and
   untrusted file content; partially observable, stochastic and sequential. \\ \hline
 Actuators & Shell commands, file read and write, user questions and approval prompts, all
-  passed through the policy layer. \\ \hline
-Sensors & Command output and exit status, file contents, system facts and user replies. \\ \hline
+  passed through the policy layer; admin actions (stop a process, create or restore a backup,
+  add, lock or delete a user), each shown and approved first. \\ \hline
+Sensors & Command output and exit status, file contents, system facts, admin reports and
+  user replies. \\ \hline
 \end{tabularx}
 \end{table}
 
@@ -198,8 +207,8 @@ feature, so each member owns an interface and can work without waiting for the o
   prompts, secret-scanning commit hook \\ \hline
 \memB & Gemini integration & API client and retries, tool declarations, system prompt,
   configuration precedence, API-key protection \\ \hline
-\memC & Tools and reports & Tool implementations with timeouts and truncation, \code{disk}
-  and \code{health} reports, terminal rendering \\ \hline
+\memC & Tools and admin commands & Tool implementations with timeouts and truncation,
+  the six admin commands, terminal rendering \\ \hline
 \memD & Testing, CI, documentation & Offline test runner and scripted fixtures, CI and ShellCheck,
   README, design document, final report \\ \hline
 \multicolumn{3}{|l|}{\cellcolor{hdrgrey}\textbf{Shared by the whole group}} \\ \hline
@@ -218,7 +227,7 @@ feature, so each member owns an interface and can work without waiting for the o
 \hdrrow \textbf{Weeks} & \textbf{Milestone} & \textbf{Lead} \\ \hline
 1--2 & Requirements, PEAS design, repository and tooling & \memE, \memD \\ \hline
 3--4 & Gemini client, tool declarations, basic agent loop & \memB, \memE \\ \hline
-5--6 & Safety policy, approvals, tools and reports & \memA, \memC \\ \hline
+5--6 & Safety policy, approvals, tools and admin commands & \memA, \memC \\ \hline
 7--8 & Integration, tests and CI, final report, demonstration & \memD, all \\ \hline
 \end{tabularx}
 \end{table}
