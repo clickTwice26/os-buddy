@@ -1,5 +1,5 @@
-# lib/render.sh: shows the model's Markdown answer nicely in a terminal.
-# Loaded with "source" after viz.sh (it uses the viz_ colours and tables).
+# lib/ai/render.sh: shows the model's Markdown answer nicely in a terminal.
+# It uses the colours and tables from lib/core/viz.sh.
 #
 # Gemini answers in Markdown (# headings, **bold**, `code`, | tables |).
 # A terminal shows those symbols as they are, so we turn them into
@@ -54,15 +54,14 @@ render_flush_table() {
   local row cell out
   local -a cells
   for row in "${RENDER_TABLE[@]}"; do
-    row="${row#"${row%%[![:space:]]*}"}"     # trim spaces on the left
+    row="$(trim_left "$row")"
     row="${row#|}"                           # drop the outer pipes
     row="${row%|}"
     [[ "$row" =~ $RENDER_SEP_RE ]] && continue   # skip the |---|---| line
     IFS='|' read -r -a cells <<< "$row"
     out=""
     for cell in "${cells[@]}"; do
-      cell="${cell#"${cell%%[![:space:]]*}"}"   # trim both sides
-      cell="${cell%"${cell##*[![:space:]]}"}"
+      cell="$(trim "$cell")"
       [[ -z "$cell" ]] && cell="-"              # viz_table needs a value
       out+="$(render_inline "$cell")"$'\t'
     done
@@ -84,7 +83,7 @@ render_answer() {
   RENDER_TABLE=()
 
   while IFS= read -r line || [[ -n "$line" ]]; do
-    trimmed="${line#"${line%%[![:space:]]*}"}"
+    trimmed="$(trim_left "$line")"
 
     # Code blocks between ``` lines: print as they are, dim and indented.
     if [[ "$trimmed" == '```'* ]]; then
@@ -108,10 +107,9 @@ render_answer() {
     if [[ "$line" == [[:space:]]* ]]; then
       line="$(render_strip_emoji "$line")"
     else
-      line="$(render_strip_emoji "$line")"
-      line="${line#"${line%%[![:space:]]*}"}"
+      line="$(trim_left "$(render_strip_emoji "$line")")"
     fi
-    trimmed="${line#"${line%%[![:space:]]*}"}"
+    trimmed="$(trim_left "$line")"
 
     # Table lines are collected first, because a box needs every row.
     if [[ "$trimmed" == '|'* ]]; then

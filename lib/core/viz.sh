@@ -1,5 +1,4 @@
-# lib/viz.sh: drawing kit for the admin reports (titles, bars, tables).
-# Loaded with "source". Never run directly.
+# lib/core/viz.sh: drawing kit for the admin reports (titles, bars, tables).
 #
 # Rule: reports are the answer, so they go to stdout (not stderr like ui.sh).
 # Colours only when stdout is a terminal and NO_COLOR is not set.
@@ -52,14 +51,6 @@ viz_len() {
   printf '%s' "${#s}"
 }
 
-# Pick a colour for a percentage: green, yellow or red.
-viz_level_color() {
-  if   (( $1 >= OSBUDDY_CRIT_PCT )); then printf '%s' "$VIZ_RED"
-  elif (( $1 >= OSBUDDY_WARN_PCT )); then printf '%s' "$VIZ_YELLOW"
-  else                                    printf '%s' "$VIZ_GREEN"
-  fi
-}
-
 # Big title with the host name and time:  viz_title "Disk usage"
 viz_title() {
   local w line
@@ -104,12 +95,28 @@ viz_badge() {
   printf '%s%s[%s]%s %s\n' "$color" "$VIZ_BOLD" "$label" "$VIZ_RESET" "$2"
 }
 
-# Badge level for a percentage: ok, warn or crit.
+# Level for a percentage: ok, warn or crit.
 viz_level() {
   if   (( $1 >= OSBUDDY_CRIT_PCT )); then printf 'crit'
   elif (( $1 >= OSBUDDY_WARN_PCT )); then printf 'warn'
   else                                    printf 'ok'
   fi
+}
+
+# Colour for a percentage: green, yellow or red.
+viz_level_color() {
+  case "$(viz_level "$1")" in
+    crit) printf '%s' "$VIZ_RED" ;;
+    warn) printf '%s' "$VIZ_YELLOW" ;;
+    *)    printf '%s' "$VIZ_GREEN" ;;
+  esac
+}
+
+# Coloured level word for a table cell:  viz_level_word 95  ->  CRIT (in red)
+viz_level_word() {
+  local level
+  level="$(viz_level "$1")"
+  printf '%s%s%s' "$(viz_level_color "$1")" "${level^^}" "$VIZ_RESET"
 }
 
 # Key/value line:  viz_kv "Uptime" "3 days"  ->  Uptime        3 days

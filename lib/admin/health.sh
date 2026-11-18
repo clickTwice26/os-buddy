@@ -1,5 +1,4 @@
-# lib/admin_health.sh: "os-buddy health", the system health report.
-# Loaded with "source". Never run directly.
+# lib/admin/health.sh: "os-buddy health", the system health report.
 #
 # Linux and macOS keep these numbers in different places:
 #   Linux: files under /proc (uptime, loadavg, meminfo, stat)
@@ -8,7 +7,7 @@
 # The parse_* functions read text on stdin, so tests can feed them
 # sample macOS output even on a Linux machine.
 
-admin_health_usage() {
+health_usage() {
   cat <<'EOF'
 Usage: os-buddy health
 
@@ -194,59 +193,52 @@ health_collect() {
   read -r total used st su <<< "${mem:-0 0 0 0}"
 
   # The fullest real disk (from the disk report's list).
-  disk="$(admin_disk_list | sort -t $'\t' -k6,6n | tail -n 1)"
+  disk="$(disk_list | sort -t $'\t' -k6,6n | tail -n 1)"
   IFS=$'\t' read -r mount _ dsize dused _ dpct <<< "${disk:-/	-	0	0	0	0}"
 
   HEALTH_ROWS=()
   HEALTH_ROWS+=("CPU usage|$cpu|measured over 0.5 s")
   HEALTH_ROWS+=("Load (1 min)|$load_pct|$l1 / $l5 / $l15 on $HEALTH_CORES cores")
-  HEALTH_ROWS+=("Memory|$(health_pct "$used" "$total")|$(admin_human_kb "$used") of $(admin_human_kb "$total")")
+  HEALTH_ROWS+=("Memory|$(health_pct "$used" "$total")|$(human_kb "$used") of $(human_kb "$total")")
   if (( st > 0 )); then
-    HEALTH_ROWS+=("Swap|$(health_pct "$su" "$st")|$(admin_human_kb "$su") of $(admin_human_kb "$st")")
+    HEALTH_ROWS+=("Swap|$(health_pct "$su" "$st")|$(human_kb "$su") of $(human_kb "$st")")
   fi
-  HEALTH_ROWS+=("Disk $mount|${dpct:-0}|$(admin_human_kb "$dused") of $(admin_human_kb "$dsize")")
+  HEALTH_ROWS+=("Disk $mount|${dpct:-0}|$(human_kb "$dused") of $(human_kb "$dsize")")
 }
 
 # Draw HEALTH_ROWS as a table with bars and a status column.
 health_table() {
-  local row name pct detail level
+  local row name pct detail
   {
     printf 'Resource\tUsage\tDetail\tStatus\n'
     for row in "${HEALTH_ROWS[@]}"; do
       IFS='|' read -r name pct detail <<< "$row"
-      level="$(viz_level "$pct")"
-      printf '%s\t%s\t%s\t%s\n' "$name" "$(viz_bar "$pct" 20)" "$detail" \
-        "$(viz_level_color "$pct")${level^^}$VIZ_RESET"
+      printf '%s\t%s\t%s\t%s\n' "$name" "$(viz_bar "$pct" 20)" "$detail" "$(viz_level_word "$pct")"
     done
   } | viz_table
 }
 
-# One badge per warning or critical resource. Returns 0, 4 or 5.
+# One alert per resource above the warning level.
 health_issues() {
-  local row name pct detail level text status=$ADMIN_OK
+  local row name pct detail level
   for row in "${HEALTH_ROWS[@]}"; do
     IFS='|' read -r name pct detail <<< "$row"
     level="$(viz_level "$pct")"
     [[ "$level" == ok ]] && continue
-    # Above 100% (only load can be) reads better as "N x the cores".
     if (( pct > 100 )); then
-      text="$name is $(awk -v p="$pct" 'BEGIN { printf "%.1f", p / 100 }')x what the cores can run ($detail)"
+      # Only load can pass 100%: "2.5x" reads better than "250%".
+      report_alert "$level" "$name is $(awk -v p="$pct" 'BEGIN { printf "%.1f", p / 100 }')x what the cores can run ($detail)"
     else
-      text="$name is at $pct% ($detail)"
+      report_alert "$level" "$name is at $pct% ($detail)"
     fi
-    viz_badge "$level" "$text"
-    if [[ "$level" == crit ]]; then status="$(admin_worse "$status" "$ADMIN_CRIT")"
-    else status="$(admin_worse "$status" "$ADMIN_WARN")"; fi
   done
-  return "$status"
 }
 
 admin_cmd_health() {
-  local status
   case "${1:-}" in
-    -h|--help) admin_health_usage; return 0 ;;
+    -h|--help) health_usage; return 0 ;;
     "")        ;;
-    *)         ui_error "unknown argument: $1"; admin_health_usage >&2; return 2 ;;
+    *)         admin_usage_error "unknown argument: $1" health_usage; return ;;
   esac
 
   health_collect
@@ -263,11 +255,7 @@ admin_cmd_health() {
   health_table
 
   viz_section "Verdict"
-  health_issues; status=$?
-  case "$status" in
-    "$ADMIN_OK")   viz_badge ok   "System is healthy" ;;
-    "$ADMIN_WARN") viz_badge warn "System needs attention soon" ;;
-    *)             viz_badge crit "System needs attention now" ;;
-  esac
-  return "$status"
+  health_issues
+  report_verdict "System is healthy" "System needs attention soon" "System needs attention now"
+  return "$REPORT_STATUS"
 }

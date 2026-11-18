@@ -75,7 +75,7 @@ These are the only ways the agent can affect the world. Each one passes through 
 | Terminal output | Progress, approval prompts and the final answer |
 | Process exit code | Reports the outcome to calling scripts |
 
-**Safety policy on actuators (`lib/policy.sh`).** It fails closed, so anything not positively recognised as safe asks first.
+**Safety policy on actuators (`lib/ai/policy.sh`).** It fails closed, so anything not positively recognised as safe asks first.
 
 - **Block always, even with `--yes`:** `rm -rf` on `/`, `/*`, `~` or system directories, `mkfs`, `dd` or redirects onto block devices, fork bombs, recursive `chmod`/`chown` on `/`.
 - **Allow automatically:** every pipeline segment starts with a known read-only command (`ls`, `cat`, `head`, `tail`, `wc`, `grep`, `df`, `du`, `ps`, `uname`, `whoami`, `id`, `date`, `pwd`, `uptime`, `free`, `stat`, `file`, `which`, `sort`, `uniq`, `cut`, `git status/log/diff`, and `find` without `-exec` or `-delete`), and the command has no `;`, `&`, `>`, `$(`, backticks or newlines.
@@ -103,7 +103,7 @@ These are the agent's only inputs.
 - Tool output is treated as untrusted data, never instructions. The system prompt says so, and the policy does not depend on the model obeying it.
 - Output is capped at about 16 KB, keeping head and tail with a truncation marker.
 
-## Agent function: how percepts become actions (`lib/agent.sh`)
+## Agent function: how percepts become actions (`lib/ai/agent.sh`)
 
 Uses Gemini's native function calling through the REST `generateContent` endpoint. For each step up to `OSBUDDY_MAX_STEPS` (default 30):
 

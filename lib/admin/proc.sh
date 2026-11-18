@@ -1,5 +1,4 @@
-# lib/admin_proc.sh: "os-buddy proc", process management.
-# Loaded with "source". Never run directly.
+# lib/admin/proc.sh: "os-buddy proc", process management.
 #
 #   os-buddy proc              summary + top processes by CPU and memory
 #   os-buddy proc find WORD    processes whose command line contains WORD
@@ -7,7 +6,7 @@
 #
 # "ps -A -o ..." with these column names works the same on Linux and macOS.
 
-admin_proc_usage() {
+proc_usage() {
   cat <<'EOF'
 Usage: os-buddy proc [find WORD | kill PID [--force]] [--yes] [--dry-run]
 
@@ -44,22 +43,31 @@ proc_table() {
     printf 'PID\tUser\tCPU\tMemory\tRSS\tRunning\tProgram\n'
     while IFS=$'\t' read -r pid uid cpu mem rss etime stat name; do
       cpu_int="${cpu%.*}" mem_int="${mem%.*}"
-      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$pid" "$(admin_cut "$(proc_user "$uid")" 12)" \
+      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$pid" "$(shorten "$(proc_user "$uid")" 12)" \
         "$(viz_bar "${cpu_int:-0}" 10)" "$(viz_bar "${mem_int:-0}" 10)" \
-        "$(admin_human_kb "${rss:-0}")" "$etime" "$(admin_cut "$name" 28)"
+        "$(human_kb "${rss:-0}")" "$etime" "$(shorten "$name" 28)"
     done
   } | viz_table
 }
 
+# Count processes by state, from proc_list lines on stdin.
+# Prints: "total running sleeping stopped zombies".
+# The state is column 7: R running, S/I sleeping, T stopped, Z zombie.
+proc_count_states() {
+  awk -F'\t' '
+    { total++ }
+    $7 ~ /^R/    { running++ }
+    $7 ~ /^[SI]/ { sleeping++ }
+    $7 ~ /^T/    { stopped++ }
+    $7 ~ /^Z/    { zombies++ }
+    END { printf "%d %d %d %d %d\n", total, running, sleeping, stopped, zombies }'
+}
+
 # The summary and the two top-10 tables.
 proc_overview() {
-  local list total running sleeping zombies stopped status=$ADMIN_OK
+  local list total running sleeping stopped zombies
   list="$(proc_list)"
-  total="$(printf '%s\n' "$list" | grep -c .)"
-  running="$(printf '%s\n' "$list" | awk -F'\t' '$7 ~ /^R/' | grep -c .)"
-  sleeping="$(printf '%s\n' "$list" | awk -F'\t' '$7 ~ /^[SI]/' | grep -c .)"
-  stopped="$(printf '%s\n' "$list" | awk -F'\t' '$7 ~ /^T/' | grep -c .)"
-  zombies="$(printf '%s\n' "$list" | awk -F'\t' '$7 ~ /^Z/' | grep -c .)"
+  read -r total running sleeping stopped zombies < <(printf '%s\n' "$list" | proc_count_states)
 
   viz_title "Processes"
   viz_section "Summary"
@@ -78,12 +86,11 @@ proc_overview() {
 
   viz_section "Alerts"
   if (( zombies > 0 )); then
-    viz_badge warn "$zombies zombie process(es): finished, but the parent has not collected them"
-    status=$ADMIN_WARN
+    report_alert warn "$zombies zombie process(es): finished, but the parent has not collected them"
   else
     viz_badge ok "No zombie processes"
   fi
-  return "$status"
+  return "$REPORT_STATUS"
 }
 
 # Processes whose full command line contains a word (any case).
@@ -125,12 +132,12 @@ proc_kill() {
 
   viz_title "Stop process $pid"
   printf '%s\n' "$line" | proc_table
-  viz_kv "Command" "$(admin_cut "$args" 70)"
+  viz_kv "Command" "$(shorten "$args" 70)"
   (( uid == 0 && EUID != 0 )) && viz_badge warn "it belongs to root: you will get 'permission denied' without sudo"
 
   [[ "$force" == 1 ]] && signal=KILL
   admin_exec "Send SIG$signal to $name ($pid)" kill -s "$signal" "$pid" || return 1
-  [[ "$ADMIN_DRY_RUN" == 1 ]] && return 0
+  [[ "$ADMIN_DRY_RUN" == 1 ]] && return 0      # nothing was sent, nothing to wait for
 
   # Give it up to 5 seconds to finish cleanly.
   for (( i = 0; i < 10; i++ )); do
@@ -150,7 +157,7 @@ admin_cmd_proc() {
                  --force) proc_kill "${2:-}" 1 ;;
                  *)       ui_error "unknown option: $3"; return 2 ;;
                esac ;;
-    -h|--help) admin_proc_usage ;;
-    *)         ui_error "unknown proc action: $1"; admin_proc_usage >&2; return 2 ;;
+    -h|--help) proc_usage ;;
+    *)         admin_usage_error "unknown proc action: $1" proc_usage ;;
   esac
 }

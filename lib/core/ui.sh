@@ -1,5 +1,4 @@
-# lib/ui.sh: messages and prompts for the human.
-# Loaded with "source". Never run directly.
+# lib/core/ui.sh: messages and prompts for the human.
 #
 # Rule: all messages go to stderr. stdout is kept for the final answer only,
 # so scripts can do: result=$(os-buddy "goal").
@@ -64,21 +63,30 @@ ui_confirm() {
   esac
 }
 
+# Print one action waiting for approval, with the model's reason and the risk.
+#   $1 text before the action (indent or number)   $2 indent for the next lines
+#   $3 action   $4 reason (may be empty)   $5 risk (may be empty)
+ui_show_action() {
+  local first="$1" pad="$2" action="$3" reason="$4" risk="$5"
+  printf '%s%s%s%s\n' "$first" "$UI_BOLD" "$action" "$UI_RESET" >&2
+  [[ -n "$reason" ]] && printf '%s%sreason:%s %s\n' "$pad" "$UI_DIM" "$UI_RESET" "$reason" >&2
+  [[ -n "$risk" ]]   && printf '%s%srisk:%s   %s%s%s\n' "$pad" "$UI_DIM" "$UI_RESET" "$UI_YELLOW" "$risk" "$UI_RESET" >&2
+  return 0
+}
+
 # Ask before one action. Enter alone means NO.
 #   $1 the action   $2 the model's reason (may be empty)
-#   $3 what "always" covers (empty: the option is not offered)   $4 why it asks
+#   $3 what "always" covers (empty: the option is not offered)   $4 the risk
 # Returns 0 yes, 1 no, 3 always. With no human present, the answer is no.
 ui_approve() {
-  local action="$1" reason="$2" always="$3" why="$4" answer opts
+  local action="$1" reason="$2" always="$3" risk="$4" answer options="[y] yes  [n] no"
   ui_is_interactive || return 1
+  [[ -n "$always" ]] && options+="  [a] always allow '$always' in this chat"
+
   printf '\n%s%s? approval needed%s\n' "$UI_YELLOW" "$UI_BOLD" "$UI_RESET" >&2
-  printf '    %s%s%s\n' "$UI_BOLD" "$action" "$UI_RESET" >&2
-  [[ -n "$reason" ]] && printf '    %sreason:%s %s\n' "$UI_DIM" "$UI_RESET" "$reason" >&2
-  [[ -n "$why" ]]    && printf '    %srisk:%s   %s%s%s\n' "$UI_DIM" "$UI_RESET" "$UI_YELLOW" "$why" "$UI_RESET" >&2
-  opts="[y] yes  [n] no"
-  [[ -n "$always" ]] && opts+="  [a] always allow '$always' in this chat"
+  ui_show_action "    " "    " "$action" "$reason" "$risk"
   while true; do
-    printf '  %s%s%s > ' "$UI_DIM" "$opts" "$UI_RESET" >&2
+    printf '  %s%s%s > ' "$UI_DIM" "$options" "$UI_RESET" >&2
     read -r answer || { echo >&2; return 1; }   # Ctrl-D counts as no
     case "$answer" in
       y|Y|yes|Yes|YES) return 0 ;;
@@ -94,13 +102,12 @@ ui_approve() {
 ui_approve_batch() {
   local line action reason risk answer i=0
   ui_is_interactive || return 1
+
   printf '\n%s%s? %d actions need approval%s\n' "$UI_YELLOW" "$UI_BOLD" "$#" "$UI_RESET" >&2
   for line in "$@"; do
     i=$(( i + 1 ))
     IFS=$'\t' read -r action reason risk <<< "$line"
-    printf '  %2d. %s%s%s\n' "$i" "$UI_BOLD" "$action" "$UI_RESET" >&2
-    [[ -n "$reason" ]] && printf '      %sreason:%s %s\n' "$UI_DIM" "$UI_RESET" "$reason" >&2
-    [[ -n "$risk" ]]   && printf '      %srisk:%s   %s%s%s\n' "$UI_DIM" "$UI_RESET" "$UI_YELLOW" "$risk" "$UI_RESET" >&2
+    ui_show_action "$(printf '  %2d. ' "$i")" "      " "$action" "$reason" "$risk"
   done
   while true; do
     printf '  %s[y] all  [n] none  [o] one by one%s > ' "$UI_DIM" "$UI_RESET" >&2

@@ -6,7 +6,7 @@ Priority: **high** = safety or correctness, **medium** = usability, **low** = ni
 
 Items marked *(verified)* were checked by running the code on 2026-11-12.
 
-## 1. Safety policy (`lib/policy.sh`)
+## 1. Safety policy (`lib/ai/policy.sh`)
 
 The policy matches command **text** against patterns. It does not really parse shell syntax,
 so some commands get through that should not.
@@ -20,7 +20,7 @@ so some commands get through that should not.
 | 1.5 | medium | `..` in paths is not resolved, so path checks can be dodged. | `ls /etc/../root` | Normalise paths before checking. |
 | 1.6 | medium | Prompt injection: a file or web page can trick the model into proposing a harmful command. The policy still applies, but "ask" items depend on the human reading carefully. `--yes` removes that check. | a README saying "now run curl ... \| sh" | Show the reason for each risky action; warn loudly when `--yes` is used; never use `--yes` on untrusted folders. |
 
-## 2. Running commands (`lib/tools.sh`)
+## 2. Running commands (`lib/ai/tools.sh`)
 
 | # | Priority | Problem | Fix idea |
 |---|---|---|---|
@@ -37,7 +37,7 @@ so some commands get through that should not.
 | 3.2 | medium | `write_file` fails if the parent folder does not exist. | Offer `mkdir -p` as part of the approved action. |
 | 3.3 | low | `edit_file` and `read_file` work on UTF-8 text only. Binary files give unclear errors. | Detect binary files (`file --mime`) and refuse clearly. |
 
-## 4. Agent loop and API (`lib/agent.sh`, `lib/gemini.sh`)
+## 4. Agent loop and API (`lib/ai/agent.sh`, `lib/ai/gemini.sh`)
 
 | # | Priority | Problem | Fix idea |
 |---|---|---|---|
@@ -68,7 +68,7 @@ so some commands get through that should not.
 | 6.4 | low | Chat mode, history trimming and Ctrl-C have no automated tests. The approval prompts are tested with a pretend terminal. | Use `script` or `expect` to fake a terminal in tests. |
 | 6.5 | low | `make` is not installed on the development machine. | `sudo apt install make`, or keep using `bash tests/run.sh`. |
 
-## 7. Admin commands (`lib/admin_*.sh`)
+## 7. Admin commands (`lib/admin/*.sh`)
 
 | # | Priority | Limitation | Possible fix |
 |---|---|---|---|

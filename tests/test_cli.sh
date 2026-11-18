@@ -27,7 +27,7 @@ cfg="$TEST_TMP/config"
 printf 'GEMINI_API_KEY=from-file\nOSBUDDY_MODEL=model-from-file\n' > "$cfg"
 chmod 600 "$cfg"
 out="$(env -u GEMINI_API_KEY OSBUDDY_CONFIG_FILE="$cfg" OSBUDDY_MODEL=model-from-env bash -c '
-  source "'"$ROOT"'/lib/ui.sh"; source "'"$ROOT"'/lib/config.sh"; config_load
+  source "'"$ROOT"'/lib/core/ui.sh"; source "'"$ROOT"'/lib/core/text.sh"; source "'"$ROOT"'/lib/core/config.sh"; config_load
   echo "$GEMINI_API_KEY $OSBUDDY_MODEL"')"
 assert_eq "from-file model-from-env" "$out" "config file is read, env overrides it"
 
@@ -37,7 +37,7 @@ mkdir -p "$fake_root"
 printf 'GEMINI_API_KEY=from-dotenv\n' > "$fake_root/.env"
 chmod 600 "$fake_root/.env"
 out="$(env -u GEMINI_API_KEY -u OSBUDDY_CONFIG_FILE OSBUDDY_ROOT="$fake_root" bash -c '
-  source "'"$ROOT"'/lib/ui.sh"; source "'"$ROOT"'/lib/config.sh"; config_load
+  source "'"$ROOT"'/lib/core/ui.sh"; source "'"$ROOT"'/lib/core/text.sh"; source "'"$ROOT"'/lib/core/config.sh"; config_load
   echo "$GEMINI_API_KEY"')"
 assert_eq "from-dotenv" "$out" "project .env is loaded automatically"
 

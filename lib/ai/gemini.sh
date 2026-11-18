@@ -1,4 +1,4 @@
-# lib/gemini.sh: one call to the Gemini generateContent REST API.
+# lib/ai/gemini.sh: one call to the Gemini generateContent REST API.
 # The request and response live in files, so big JSON never passes
 # through command-line arguments (limits, quoting bugs).
 

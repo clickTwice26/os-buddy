@@ -3,7 +3,7 @@
 #   make lint     check all scripts with ShellCheck
 #   make install  link os-buddy into ~/.local/bin
 
-SCRIPTS := bin/os-buddy lib/*.sh install.sh tests/*.sh tests/fixtures/fake-curl.sh
+SCRIPTS := bin/os-buddy lib/*.sh lib/*/*.sh install.sh tests/*.sh tests/fixtures/fake-curl.sh
 
 .PHONY: test lint install
 

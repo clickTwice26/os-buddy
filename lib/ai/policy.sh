@@ -1,4 +1,4 @@
-# lib/policy.sh: the safety layer between the model and the OS.
+# lib/ai/policy.sh: the safety layer between the model and the OS.
 # Every command is classified as one of:
 #   block  never runs, not even with --yes
 #   allow  runs automatically (known read-only)
@@ -36,6 +36,13 @@ POLICY_BLOCK_RES=(
   ':\(\)[[:space:]]*\{'                                     # fork bomb :(){ :|:& };:
   '(chmod|chown)[[:space:]]+-[[:alpha:]]*R.*[[:space:]]/([[:space:]]|$)'  # recursive on /
 )
+
+# True if the word is in a space- or newline-separated list.
+#   policy_in_list ls "$POLICY_READ_ONLY"
+policy_in_list() {
+  local word="$1" list=" ${2//$'\n'/ } "
+  [[ "$list" == *" $word "* ]]
+}
 
 # True if the text mentions a sensitive path.
 policy_is_sensitive() {
@@ -82,7 +89,7 @@ policy_segment_read_only() {
   local first rest
   read -r first rest <<< "$1"                  # first word, then the rest
   [[ -n "$first" ]] || return 1
-  [[ " ${POLICY_READ_ONLY//$'\n'/ } " == *" $first "* ]] || return 1
+  policy_in_list "$first" "$POLICY_READ_ONLY" || return 1
 
   # Read-only programs that also have a writing or acting mode.
   case "$first" in
@@ -177,7 +184,7 @@ policy_can_always() {
   s="$(policy_mask_quotes "$cmd")"
   [[ "$s" == *[\;\&\|\>\<\`]* || "$s" == *'$('* || "$s" == *$'\n'* ]] && return 1
   read -r first _ <<< "$cmd"
-  [[ " ${POLICY_NEVER_ALWAYS//$'\n'/ } " == *" ${first##*/} "* ]] && return 1
+  policy_in_list "${first##*/}" "$POLICY_NEVER_ALWAYS" && return 1
   return 0
 }
 

@@ -1,19 +1,19 @@
 # os-buddy flow charts
 
 These flow charts show **every decision and branch** in os-buddy, from start to end.
-They match the code in `bin/os-buddy` and `lib/*.sh`.
+They match the code in `bin/os-buddy` and `lib/*/*.sh`.
 
 Related docs: [sequence-diagram.md](sequence-diagram.md) (who talks to whom), [use-case-diagram.md](use-case-diagram.md) (who can do what), [design.md](design.md) (PEAS design).
 
 | # | Chart | Code |
 |---|---|---|
-| 1 | [The whole program, start to end](#1-the-whole-program-start-to-end) | `bin/os-buddy`, `lib/agent.sh` |
+| 1 | [The whole program, start to end](#1-the-whole-program-start-to-end) | `bin/os-buddy`, `lib/ai/agent.sh` |
 | 2 | [How a command is classified](#2-how-a-command-is-classified-allow-ask-or-block) | `policy_check_command` |
 | 3 | [How an action gets approved](#3-how-an-action-gets-approved) | `tools_approve` |
-| 4 | [What each tool does](#4-what-each-tool-does) | `lib/tools.sh` |
+| 4 | [What each tool does](#4-what-each-tool-does) | `lib/ai/tools.sh` |
 | 5 | [Gemini call with retries](#5-gemini-call-with-retries) | `gemini_call` |
-| 6 | [Admin reports](#6-admin-reports-disk-and-health) | `lib/admin*.sh` |
-| 7 | [Where settings come from](#7-where-settings-come-from) | `lib/config.sh` |
+| 6 | [Admin reports](#6-admin-reports-disk-and-health) | `lib/admin/*.sh` |
+| 7 | [Where settings come from](#7-where-settings-come-from) | `lib/core/config.sh` |
 
 ---
 

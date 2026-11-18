@@ -1,32 +1,32 @@
 # os-buddy sequence diagrams
 
 These diagrams show **who talks to whom, and in what order**, from the moment the user types `os-buddy` until the program exits.
-They match the code in `bin/os-buddy` and `lib/*.sh`.
+They match the code in `bin/os-buddy` and `lib/*/*.sh`.
 
 Related docs: [flowchart.md](flowchart.md) (decisions and branches), [use-case-diagram.md](use-case-diagram.md) (who can do what), [design.md](design.md) (PEAS design).
 
 | # | Diagram | Covers |
 |---|---|---|
 | 1 | [Startup and mode selection](#1-startup-and-mode-selection) | `main()` in `bin/os-buddy` |
-| 2 | [One goal, end to end](#2-one-goal-end-to-end-the-agent-loop) | `agent_run_goal` in `lib/agent.sh` |
-| 3 | [Calling Gemini with retries](#3-calling-gemini-with-retries) | `gemini_call` in `lib/gemini.sh` |
+| 2 | [One goal, end to end](#2-one-goal-end-to-end-the-agent-loop) | `agent_run_goal` in `lib/ai/agent.sh` |
+| 3 | [Calling Gemini with retries](#3-calling-gemini-with-retries) | `gemini_call` in `lib/ai/gemini.sh` |
 | 4 | [Running one tool call](#4-running-one-tool-call-with-the-safety-policy) | `tools_dispatch`, `tools_approve`, `policy_check_command` |
 | 5 | [Asking one approval for several actions](#5-grouped-approval-two-or-more-actions-in-one-reply) | `agent_group_approval` |
 | 6 | [Chat mode](#6-chat-mode) | `chat_loop` |
-| 7 | [Admin reports (disk, health)](#7-admin-reports-no-api-key-no-gemini) | `lib/admin*.sh`, `lib/viz.sh` |
+| 7 | [Admin reports (disk, health)](#7-admin-reports-no-api-key-no-gemini) | `lib/admin/*.sh`, `lib/core/viz.sh` |
 
 Participants used below:
 
 | Name in diagram | File | Role |
 |---|---|---|
 | Entry | `bin/os-buddy` | Checks the system, loads libraries, picks a mode |
-| Config | `lib/config.sh` | Reads the config file, environment and flags |
-| Agent | `lib/agent.sh` | The loop: ask the model, run tools, repeat |
-| Gemini lib | `lib/gemini.sh` | Builds the request and calls the REST API |
-| Tools | `lib/tools.sh` | The actions the model may take |
-| Policy | `lib/policy.sh` | Classifies an action as allow, ask or block |
-| UI | `lib/ui.sh` | Messages and prompts for the human (all on stderr) |
-| Render | `lib/render.sh` | Turns the model's Markdown into terminal text |
+| Config | `lib/core/config.sh` | Reads the config file, environment and flags |
+| Agent | `lib/ai/agent.sh` | The loop: ask the model, run tools, repeat |
+| Gemini lib | `lib/ai/gemini.sh` | Builds the request and calls the REST API |
+| Tools | `lib/ai/tools.sh` | The actions the model may take |
+| Policy | `lib/ai/policy.sh` | Classifies an action as allow, ask or block |
+| UI | `lib/core/ui.sh` | Messages and prompts for the human (all on stderr) |
+| Render | `lib/ai/render.sh` | Turns the model's Markdown into terminal text |
 
 ---
 
@@ -39,7 +39,7 @@ sequenceDiagram
     autonumber
     actor User
     participant Entry as bin/os-buddy
-    participant Admin as admin.sh
+    participant Admin as admin/common.sh
     participant Config as config.sh
     participant Agent as agent.sh
     participant UI as ui.sh
@@ -322,8 +322,8 @@ sequenceDiagram
     autonumber
     actor User
     participant Entry as bin/os-buddy
-    participant Admin as admin.sh
-    participant Report as admin_disk.sh / admin_health.sh
+    participant Admin as admin/common.sh
+    participant Report as admin/disk.sh / admin/health.sh
     participant OS as Operating system
     participant Viz as viz.sh
 

@@ -1,5 +1,4 @@
-# lib/admin_users.sh: "os-buddy users", user management.
-# Loaded with "source". Never run directly.
+# lib/admin/users.sh: "os-buddy users", user management.
 #
 # Linux keeps users in /etc/passwd (read with getent) and changes them
 # with useradd/usermod/userdel. Alpine has the smaller busybox tools
@@ -8,7 +7,7 @@
 # Every change needs administrator rights, shows the exact command and
 # asks first.
 
-admin_users_usage() {
+users_usage() {
   cat <<'EOF'
 Usage: os-buddy users [ACTION NAME] [--admin] [--yes] [--dry-run]
 
@@ -27,7 +26,7 @@ EOF
 
 # Smallest user id for real people (system accounts are below it).
 users_uid_min() {
-  if [[ "$(uname -s)" == Darwin ]]; then
+  if is_mac; then
     echo 500
   else
     awk '$1 == "UID_MIN" { print $2; found = 1 } END { if (!found) print 1000 }' /etc/login.defs 2> /dev/null ||
@@ -38,7 +37,7 @@ users_uid_min() {
 # One line per account, tab-separated: name, uid, home, shell.
 users_all() {
   local u uid
-  if [[ "$(uname -s)" == Darwin ]]; then
+  if is_mac; then
     dscl . -list /Users UniqueID | while read -r u uid; do
       [[ "$u" == _* ]] && continue                  # "_name" = service account
       printf '%s\t%s\t%s\t%s\n' "$u" "$uid" \
@@ -59,7 +58,7 @@ users_people() {
 # Members of the administrator groups, one name per line.
 users_admins() {
   local g
-  if [[ "$(uname -s)" == Darwin ]]; then
+  if is_mac; then
     dscl . -read /Groups/admin GroupMembership 2> /dev/null | tr ' ' '\n' | sed 1d
   else
     for g in sudo wheel admin; do
@@ -173,7 +172,7 @@ users_add() {
   users_set_sudo
   viz_title "Add user $name"
 
-  if [[ "$(uname -s)" == Darwin ]]; then
+  if is_mac; then
     cmd=("${USERS_SUDO[@]}" sysadminctl -addUser "$name" -fullName "$name" -password -)
     [[ "$admin" == 1 ]] && cmd+=(-admin)
     admin_exec "Create the account (you will type its password)" "${cmd[@]}" || return 1
@@ -191,7 +190,7 @@ users_add() {
   [[ "$ADMIN_DRY_RUN" == 1 ]] && return 0
 
   viz_badge ok "user $name created"
-  if [[ "$(uname -s)" != Darwin ]]; then
+  if ! is_mac; then
     viz_badge info "the account has no password yet, so nobody can log in with one"
     if [[ "$ADMIN_YES" != 1 ]] && ui_is_interactive && ui_confirm "Set a password now?"; then
       "${USERS_SUDO[@]}" passwd "$name"
@@ -217,41 +216,43 @@ users_busybox_passwd() {
 }
 
 users_lock() {
-  local name="$1" action="$2"
+  local name="$1" action="$2" what title busybox=false
+  local -a cmd
   users_check "$name" existing || return $?
   users_set_sudo
-  viz_title "$( [[ "$action" == lock ]] && echo Lock || echo Unlock ) user $name"
-  if [[ "$(uname -s)" == Darwin ]]; then
-    if [[ "$action" == lock ]]; then
-      admin_exec "Block logins" "${USERS_SUDO[@]}" pwpolicy -u "$name" disableuser || return 1
-    else
-      admin_exec "Allow logins" "${USERS_SUDO[@]}" pwpolicy -u "$name" enableuser || return 1
-    fi
+  if [[ "$action" == lock ]]; then what="Block logins" title="Lock"; else what="Allow logins" title="Unlock"; fi
+  viz_title "$title user $name"
+
+  # The same job has a different command on each system.
+  if is_mac; then
+    if [[ "$action" == lock ]]; then cmd=(pwpolicy -u "$name" disableuser); else cmd=(pwpolicy -u "$name" enableuser); fi
   elif command -v usermod > /dev/null 2>&1; then
-    if [[ "$action" == lock ]]; then
-      admin_exec "Block password logins" "${USERS_SUDO[@]}" usermod -L "$name" || return 1
-    else
-      admin_exec "Allow password logins" "${USERS_SUDO[@]}" usermod -U "$name" || return 1
-    fi
+    if [[ "$action" == lock ]]; then cmd=(usermod -L "$name"); else cmd=(usermod -U "$name"); fi
   else
-    if [[ "$action" == lock ]]; then
-      ADMIN_SHOW="${USERS_SUDO[*]:+${USERS_SUDO[*]} }passwd -l $name" \
-        admin_exec "Block password logins" users_busybox_passwd "${USERS_SUDO[@]}" passwd -l "$name" || return 1
-    else
-      ADMIN_SHOW="${USERS_SUDO[*]:+${USERS_SUDO[*]} }passwd -u $name" \
-        admin_exec "Allow password logins" users_busybox_passwd "${USERS_SUDO[@]}" passwd -u "$name" || return 1
-    fi
+    busybox=true
+    if [[ "$action" == lock ]]; then cmd=(passwd -l "$name"); else cmd=(passwd -u "$name"); fi
+  fi
+  cmd=("${USERS_SUDO[@]}" "${cmd[@]}")
+
+  if $busybox; then
+    # Busybox passwd: run through a wrapper that accepts "already locked".
+    ADMIN_SHOW="${cmd[*]}" admin_exec "$what" users_busybox_passwd "${cmd[@]}" || return 1
+  else
+    admin_exec "$what" "${cmd[@]}" || return 1
   fi
   [[ "$ADMIN_DRY_RUN" == 1 ]] && return 0
+
   viz_badge ok "user $name ${action}ed"
-  [[ "$action" == lock ]] &&
+  if [[ "$action" == lock ]]; then
     printf '  %sNote: SSH keys can still work; remove ~%s/.ssh/authorized_keys to block them too.%s\n' \
       "$VIZ_DIM" "$name" "$VIZ_RESET"
+  fi
   return 0
 }
 
 users_delete() {
   local name="$1" home
+  local -a cmd
   users_check "$name" existing || return $?
   users_set_sudo
   home="$(users_all | awk -F'\t' -v n="$name" '$1 == n { print $3 }')"
@@ -261,13 +262,15 @@ users_delete() {
     ui_error "$name is logged in right now; log them out first"
     return 1
   fi
-  if [[ "$(uname -s)" == Darwin ]]; then
-    admin_exec "Delete the account, keep the home folder" "${USERS_SUDO[@]}" sysadminctl -deleteUser "$name" -keepHome || return 1
+
+  if is_mac; then
+    cmd=(sysadminctl -deleteUser "$name" -keepHome)
   elif command -v userdel > /dev/null 2>&1; then
-    admin_exec "Delete the account, keep the home folder" "${USERS_SUDO[@]}" userdel "$name" || return 1
+    cmd=(userdel "$name")                 # without -r, the home folder stays
   else
-    admin_exec "Delete the account, keep the home folder" "${USERS_SUDO[@]}" deluser "$name" || return 1
+    cmd=(deluser "$name")                 # busybox: keeps the home folder too
   fi
+  admin_exec "Delete the account, keep the home folder" "${USERS_SUDO[@]}" "${cmd[@]}" || return 1
   [[ "$ADMIN_DRY_RUN" == 1 ]] && return 0
   viz_badge ok "user $name deleted; files are still in ${home:-its home folder}"
 }
@@ -285,7 +288,7 @@ admin_cmd_users() {
     lock)      users_lock "${2:-}" lock ;;
     unlock)    users_lock "${2:-}" unlock ;;
     delete)    users_delete "${2:-}" ;;
-    -h|--help) admin_users_usage ;;
-    *)         ui_error "unknown users action: $1"; admin_users_usage >&2; return 2 ;;
+    -h|--help) users_usage ;;
+    *)         admin_usage_error "unknown users action: $1" users_usage ;;
   esac
 }

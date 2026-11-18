@@ -1,10 +1,9 @@
-# lib/admin_disk.sh: "os-buddy disk", the disk monitoring report.
-# Loaded with "source". Never run directly.
+# lib/admin/disk.sh: "os-buddy disk", the disk monitoring report.
 #
 #   os-buddy disk          usage of every real disk, with alerts
 #   os-buddy disk PATH     the same, plus the biggest items inside PATH
 
-admin_disk_usage() {
+disk_usage() {
   cat <<'EOF'
 Usage: os-buddy disk [PATH]
 
@@ -19,7 +18,7 @@ EOF
 
 # One line per real disk, tab-separated: mount, device, size, used, free (KB), use %.
 # "df -P" prints the same POSIX columns on Linux and macOS.
-admin_disk_list() {
+disk_list() {
   df -P -k 2> /dev/null | awk -v OFS='\t' '
     NR == 1 { next }                       # skip the header line
     $1 !~ /^\/dev\// { next }              # skip tmpfs, proc and other fake disks
@@ -33,60 +32,44 @@ admin_disk_list() {
 }
 
 admin_cmd_disk() {
-  local path="" mount dev size used free pct level status=$ADMIN_OK
-  local -a alerts=()
-
+  local path="" mount dev size used free pct table
   case "${1:-}" in
-    -h|--help) admin_disk_usage; return 0 ;;
-    -*)        ui_error "unknown option: $1"; admin_disk_usage >&2; return 2 ;;
+    -h|--help) disk_usage; return 0 ;;
+    -*)        admin_usage_error "unknown option: $1" disk_usage; return ;;
     "")        ;;
     *)         path="$1"
                [[ -d "$path" ]] || { ui_error "not a folder: $path"; return 1; } ;;
   esac
 
+  # One pass over the disks: build the table rows, collect the alerts.
+  local -a alerts=()
+  table=$'Mount\tDevice\tSize\tUsed\tFree\tUse\tStatus\n'
+  while IFS=$'\t' read -r mount dev size used free pct; do
+    table+="$mount"$'\t'"$dev"$'\t'"$(human_kb "$size")"$'\t'"$(human_kb "$used")"
+    table+=$'\t'"$(human_kb "$free")"$'\t'"$(viz_bar "$pct" 20)"$'\t'"$(viz_level_word "$pct")"$'\n'
+    case "$(viz_level "$pct")" in
+      crit) alerts+=("crit|$mount is $pct% full, only $(human_kb "$free") left") ;;
+      warn) alerts+=("warn|$mount is $pct% full") ;;
+    esac
+  done < <(disk_list)
+
   viz_title "Disk usage"
   viz_section "Filesystems"
-
-  # Build the table: a header line, then one line per disk.
-  {
-    printf 'Mount\tDevice\tSize\tUsed\tFree\tUse\tStatus\n'
-    while IFS=$'\t' read -r mount dev size used free pct; do
-      level="$(viz_level "$pct")"
-      printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\n' "$mount" "$dev" \
-        "$(admin_human_kb "$size")" "$(admin_human_kb "$used")" \
-        "$(admin_human_kb "$free")" "$(viz_bar "$pct" 20)" \
-        "$(viz_level_color "$pct")${level^^}$VIZ_RESET"
-    done < <(admin_disk_list)
-  } | viz_table
-
-  # Second pass for the alerts. The table above ran in a pipe (a subshell),
-  # so variables set there are lost. That is why we read the list again.
-  while IFS=$'\t' read -r mount dev size used free pct; do
-    level="$(viz_level "$pct")"
-    case "$level" in
-      crit) alerts+=("crit|$mount is $pct% full, only $(admin_human_kb "$free") left")
-            status="$(admin_worse "$status" "$ADMIN_CRIT")" ;;
-      warn) alerts+=("warn|$mount is $pct% full")
-            status="$(admin_worse "$status" "$ADMIN_WARN")" ;;
-    esac
-  done < <(admin_disk_list)
+  printf '%s' "$table" | viz_table
 
   viz_section "Alerts"
-  if (( ${#alerts[@]} == 0 )); then
-    viz_badge ok "All disks are below ${OSBUDDY_WARN_PCT}%"
-  else
-    local a
-    for a in "${alerts[@]}"; do
-      viz_badge "${a%%|*}" "${a#*|}"     # text before / after the "|"
-    done
-  fi
+  local alert
+  for alert in "${alerts[@]}"; do
+    report_alert "${alert%%|*}" "${alert#*|}"     # level before the "|", text after
+  done
+  (( ${#alerts[@]} == 0 )) && viz_badge ok "All disks are below ${OSBUDDY_WARN_PCT}%"
 
-  [[ -n "$path" ]] && admin_disk_top "$path"
-  return "$status"
+  [[ -n "$path" ]] && disk_top "$path"
+  return "$REPORT_STATUS"
 }
 
 # The 10 biggest files and folders directly inside a folder.
-admin_disk_top() {
+disk_top() {
   local dir="$1" total kb item rows
   viz_section "Biggest items in $dir"
 
@@ -102,8 +85,7 @@ admin_disk_top() {
   {
     printf 'Size\tShare\tItem\n'
     while IFS=$'\t' read -r kb item; do
-      printf '%s\t%s\t%s\n' "$(admin_human_kb "$kb")" \
-        "$(viz_bar $(( kb * 100 / total )) 20)" "${item#"$dir"/}"
+      printf '%s\t%s\t%s\n' "$(human_kb "$kb")" "$(viz_bar $(( kb * 100 / total )) 20)" "${item#"$dir"/}"
     done <<< "$rows"
   } | viz_table
 }

@@ -1,11 +1,11 @@
-# lib/admin.sh: runs the admin commands (os-buddy disk, health, ...).
-# Loaded with "source". Never run directly.
+# lib/admin/common.sh: runs the admin commands (os-buddy disk, health, ...).
 #
 # Admin commands do not use Gemini. They run fixed, safe checks and draw
-# the result with lib/viz.sh, so they work without an API key.
+# the result with lib/core/viz.sh, so they work without an API key.
 #
-# To add a command "foo", define a function admin_cmd_foo in its own file.
-# The dispatcher below finds it by name, so nothing else needs to change.
+# To add a command "foo": write a function admin_cmd_foo in its own file
+# (lib/admin/foo.sh) and add that file to lib/load.sh. The dispatcher
+# below finds the command by its function name.
 #
 # Exit codes of a report: 0 all fine, 4 warning, 5 critical, 1 error,
 # 2 usage error.
@@ -17,6 +17,7 @@
 ADMIN_OK=0 ADMIN_WARN=4 ADMIN_CRIT=5
 ADMIN_YES=0
 ADMIN_DRY_RUN=0
+REPORT_STATUS=0      # worst level seen by report_alert: 0, 4 or 5
 
 # True when the word is the name of an admin command.
 admin_is_command() {
@@ -36,7 +37,39 @@ admin_run() {
       *)            args+=("$arg") ;;
     esac
   done
+  REPORT_STATUS=$ADMIN_OK
   "admin_cmd_$cmd" "${args[@]}"
+}
+
+# Show a problem as a badge and remember how bad it is.
+#   report_alert warn|crit "text"
+# A report ends with:  return "$REPORT_STATUS"
+report_alert() {
+  local level="$1" text="$2"
+  viz_badge "$level" "$text"
+  if [[ "$level" == crit ]]; then
+    REPORT_STATUS=$ADMIN_CRIT
+  elif [[ "$level" == warn ]] && (( REPORT_STATUS < ADMIN_WARN )); then
+    REPORT_STATUS=$ADMIN_WARN
+  fi
+}
+
+# The last line of a report: one badge that sums up REPORT_STATUS.
+#   report_verdict "good text" "warning text" "critical text"
+report_verdict() {
+  case "$REPORT_STATUS" in
+    "$ADMIN_OK")   viz_badge ok   "$1" ;;
+    "$ADMIN_WARN") viz_badge warn "$2" ;;
+    *)             viz_badge crit "$3" ;;
+  esac
+}
+
+# Print a usage error for a command and return 2.
+#   admin_usage_error "message" usage_function
+admin_usage_error() {
+  ui_error "$1"
+  "$2" >&2
+  return 2
 }
 
 # Ask before a change. Yes with --yes; no when nobody is at the keyboard.
@@ -44,6 +77,12 @@ admin_confirm() {
   [[ "$ADMIN_YES" == 1 ]] && return 0
   ui_is_interactive || { ui_error "no terminal to ask in; add --yes to approve"; return 1; }
   ui_confirm "$1"
+}
+
+# True for --dry-run. Prints the "nothing was changed" badge too.
+admin_dry_run() {
+  [[ "$ADMIN_DRY_RUN" == 1 ]] || return 1
+  viz_badge info "dry run: nothing was changed"
 }
 
 # Run a command that changes the system, after showing it and asking.
@@ -57,41 +96,7 @@ admin_exec() {
   shown="${ADMIN_SHOW:-$(printf '%q ' "$@")}"
   printf '  %s%s%s\n    %s$ %s%s\n' "$VIZ_BOLD" "$what" "$VIZ_RESET" \
     "$VIZ_DIM" "${shown% }" "$VIZ_RESET"
-  if [[ "$ADMIN_DRY_RUN" == 1 ]]; then
-    viz_badge info "dry run: nothing was changed"
-    return 0
-  fi
+  admin_dry_run && return 0
   admin_confirm "Run it?" || { viz_badge info "cancelled, nothing was changed"; return 1; }
   "$@"
-}
-
-# Turn kilobytes into a short human size: 47980468 -> 45.8G
-admin_human_kb() {
-  awk -v kb="$1" 'BEGIN {
-    split("K M G T P", unit, " ")
-    i = 1
-    while (kb >= 1024 && i < 5) { kb /= 1024; i++ }
-    printf (i == 1 ? "%d%s" : "%.1f%s"), kb, unit[i]
-  }'
-}
-
-# Turn seconds into a short age: 93784 -> 1d 2h, 3700 -> 1h 1m, 59 -> 59s
-admin_human_age() {
-  local s="${1:-0}"
-  if   (( s >= 86400 )); then printf '%dd %dh' $(( s / 86400 )) $(( s % 86400 / 3600 ))
-  elif (( s >= 3600 ));  then printf '%dh %dm' $(( s / 3600 )) $(( s % 3600 / 60 ))
-  elif (( s >= 60 ));    then printf '%dm' $(( s / 60 ))
-  else                        printf '%ds' "$s"
-  fi
-}
-
-# Cut a long text to N characters with "..." at the end.
-admin_cut() {
-  local text="$1" n="$2"
-  if (( ${#text} > n )); then printf '%s...' "${text:0:n-3}"; else printf '%s' "$text"; fi
-}
-
-# Keep the worst exit code seen so far: admin_worse CURRENT NEW
-admin_worse() {
-  if (( $2 > $1 )); then printf '%s' "$2"; else printf '%s' "$1"; fi
 }

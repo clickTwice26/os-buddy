@@ -21,7 +21,7 @@ assert_contains "$out" "Run df -h now." "code ticks removed"
 
 # Emoji are removed (needs a UTF-8 locale, like a real terminal).
 if locale -a 2> /dev/null | grep -qi '^c\.utf-\?8$'; then
-  out="$(LC_ALL=C.UTF-8 bash -c 'source "$1/lib/viz.sh"; source "$1/lib/render.sh"
+  out="$(LC_ALL=C.UTF-8 bash -c 'source "$1/lib/core/text.sh"; source "$1/lib/core/viz.sh"; source "$1/lib/ai/render.sh"
     printf "### \360\237\222\276 Disk\n- \342\232\241 fast\n" | OSBUDDY_RENDER=1 render_answer' _ "$ROOT")"
   assert_contains "$out" $'Disk' "heading kept"
   assert_not_contains "$out" $'\360\237\222\276' "emoji removed from heading"

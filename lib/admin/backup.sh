@@ -1,5 +1,4 @@
-# lib/admin_backup.sh: "os-buddy backup", backup automation.
-# Loaded with "source". Never run directly.
+# lib/admin/backup.sh: "os-buddy backup", backup automation.
 #
 # A backup is one compressed archive (NAME-YYYYmmdd-HHMMSS.tar.gz) plus a
 # checksum file (.sha256) in the backup folder. The checksum shows later
@@ -11,7 +10,7 @@
 : "${OSBUDDY_CRONTAB:=crontab}"          # the tests swap in a fake crontab
 BACKUP_CRON_MARK="# os-buddy-backup"
 
-admin_backup_usage() {
+backup_usage() {
   cat <<EOF
 Usage: os-buddy backup ACTION ... [--yes] [--dry-run]
 
@@ -88,6 +87,10 @@ backup_create() {
   [[ -r "$src" ]] || { ui_error "cannot read: $src"; return 1; }
 
   abs="$(backup_abs "$src")"
+  if [[ "$abs" == / ]]; then
+    ui_error "backing up / as a whole is not supported; choose a folder"
+    return 1
+  fi
   parent="$(dirname "$abs")" base="$(basename "$abs")"
   name="$(backup_name "$abs")"
   stamp="$(date '+%Y%m%d-%H%M%S')"
@@ -96,7 +99,7 @@ backup_create() {
   viz_title "Backup: $abs"
   if [[ "$ADMIN_DRY_RUN" == 1 ]]; then
     viz_kv "Would write" "$file"
-    viz_badge info "dry run: nothing was changed"
+    admin_dry_run
     return 0
   fi
   mkdir -p "$OSBUDDY_BACKUP_DIR" || { ui_error "cannot create $OSBUDDY_BACKUP_DIR"; return 1; }
@@ -116,10 +119,6 @@ backup_create() {
   # half-written file that looks like a good backup.
   tmp="$file.partial"
   start=$SECONDS
-  if [[ "$parent" == / && "$base" == / ]]; then
-    ui_error "backing up / as a whole is not supported; choose a folder"
-    return 1
-  fi
   if ! tar -czf "$tmp" "${exclude[@]}" -C "$parent" "$base" 2> "$tmp.err"; then
     ui_error "tar failed: $(head -n 3 "$tmp.err")"
     rm -f "$tmp" "$tmp.err"
@@ -143,7 +142,7 @@ backup_create() {
   viz_section "Result"
   {
     printf 'Archive\tSize\tEntries\tTook\n'
-    printf '%s\t%s\t%s\t%ss\n' "$(basename "$file")" "$(admin_human_kb "$kb")" "$count" "$took"
+    printf '%s\t%s\t%s\t%ss\n' "$(basename "$file")" "$(human_kb "$kb")" "$count" "$took"
   } | viz_table
   viz_badge ok "backup written and checksum saved"
   (( removed > 0 )) && viz_badge info "removed $removed old backup(s) of $name (keeping $OSBUDDY_BACKUP_KEEP)"
@@ -153,51 +152,60 @@ backup_create() {
 # ---- list ----
 
 backup_list() {
-  local f now newest=0 m total=0 kb n=0 check
+  local f m kb check now rows="" count=0 total_kb=0 newest=0
+  now="$(date +%s)"
+  while IFS= read -r f; do
+    [[ -n "$f" ]] || continue
+    m="$(backup_mtime "$f")" kb="$(backup_kb "$f")"
+    if [[ -f "$f.sha256" ]]; then check="saved"; else check="missing"; fi
+    rows+="$(basename "$f")"$'\t'"$(backup_date "$m")"$'\t'"$(human_age $(( now - m )))"
+    rows+=$'\t'"$(human_kb "$kb")"$'\t'"$check"$'\n'
+    count=$(( count + 1 ))
+    total_kb=$(( total_kb + kb ))
+    (( m > newest )) && newest=$m
+  done < <(backup_files)
+
   viz_title "Backups"
   viz_kv "Folder" "$OSBUDDY_BACKUP_DIR"
   viz_kv "Keep" "$OSBUDDY_BACKUP_KEEP newest per name"
 
   viz_section "Archives"
-  now="$(date +%s)"
-  local rows=""
-  while IFS= read -r f; do
-    [[ -n "$f" ]] || continue
-    m="$(backup_mtime "$f")" kb="$(backup_kb "$f")"
-    if [[ -f "$f.sha256" ]]; then check="saved"; else check="missing"; fi
-    rows+="$(basename "$f")"$'\t'"$(backup_date "$m")"$'\t'"$(admin_human_age $(( now - m )))"
-    rows+=$'\t'"$(admin_human_kb "$kb")"$'\t'"$check"$'\n'
-    n=$(( n + 1 ))
-  done < <(backup_files)
-  if (( n > 0 )); then
+  if (( count > 0 )); then
     printf 'Archive\tCreated\tAge\tSize\tChecksum\n%s' "$rows" | viz_table
   else
     viz_badge info "the folder has no backups"
   fi
 
-  while IFS= read -r f; do
-    [[ -n "$f" ]] || continue
-    m="$(backup_mtime "$f")"; (( m > newest )) && newest=$m
-    total=$(( total + $(backup_kb "$f") ))
-  done < <(backup_files)
-
   viz_section "Schedules"
   backup_schedules_table
 
   viz_section "Status"
-  if (( n == 0 )); then
-    viz_badge warn "no backups yet. Try: os-buddy backup create ~/Documents"
-    return "$ADMIN_WARN"
+  if (( count == 0 )); then
+    report_alert warn "no backups yet. Try: os-buddy backup create ~/Documents"
+  else
+    viz_badge ok "$count backup(s), $(human_kb "$total_kb") in total, newest $(human_age $(( now - newest ))) ago"
   fi
-  viz_badge ok "$n backup(s), $(admin_human_kb "$total") in total, newest $(admin_human_age $(( now - newest ))) ago"
-  return 0
+  return "$REPORT_STATUS"
 }
 
 # ---- verify ----
 
+# Check one archive. Prints: ok, damaged or unsure (no checksum file).
+# Without a checksum, damage can be missed (some tar versions ignore
+# junk at the end of a file), so that is "unsure", not "ok".
+backup_check() {
+  local file="$1" saved
+  saved="$(awk '{ print $1 }' "$file.sha256" 2> /dev/null)"
+  if ! tar -tzf "$file" > /dev/null 2>&1; then echo damaged
+  elif [[ -z "$saved" ]]; then echo unsure
+  elif [[ "$saved" != "$(backup_sha256 "$file")" ]]; then echo damaged
+  else echo ok
+  fi
+}
+
 backup_verify() {
-  local target="${1:-}" f saved real sum arch status=$ADMIN_OK
-  local -a files=()
+  local target="${1:-}" f result rows=""
+  local -a files=() damaged=() unsure=()
   if [[ -n "$target" ]]; then
     [[ -f "$target" ]] || target="$OSBUDDY_BACKUP_DIR/$target"
     [[ -f "$target" ]] || { ui_error "no such backup: $1"; return 1; }
@@ -208,43 +216,26 @@ backup_verify() {
 
   viz_title "Verify backups"
   if (( ${#files[@]} == 0 )); then
-    viz_badge warn "no backups to verify"
-    return "$ADMIN_WARN"
+    report_alert warn "no backups to verify"
+    return "$REPORT_STATUS"
   fi
-  {
-    printf 'Archive\tChecksum\tArchive readable\tStatus\n'
-    for f in "${files[@]}"; do
-      saved="$(awk '{ print $1 }' "$f.sha256" 2> /dev/null)"
-      real="$(backup_sha256 "$f")"
-      if [[ -z "$saved" ]]; then sum="missing"
-      elif [[ "$saved" == "$real" ]]; then sum="match"
-      else sum="DIFFERENT"; fi
-      if tar -tzf "$f" > /dev/null 2>&1; then arch="yes"; else arch="NO"; fi
-      if [[ "$sum" == DIFFERENT || "$arch" == NO ]]; then
-        printf '%s\t%s\t%s\t%s\n' "$(basename "$f")" "$sum" "$arch" "${VIZ_RED}DAMAGED$VIZ_RESET"
-      elif [[ "$sum" == missing ]]; then
-        printf '%s\t%s\t%s\t%s\n' "$(basename "$f")" "$sum" "$arch" "${VIZ_YELLOW}UNSURE$VIZ_RESET"
-      else
-        printf '%s\t%s\t%s\t%s\n' "$(basename "$f")" "$sum" "$arch" "${VIZ_GREEN}OK$VIZ_RESET"
-      fi
-    done
-  } | viz_table
 
-  # Count damaged ones outside the pipe (variables set in a pipe are lost).
-  # Without a checksum, damage can be missed (some tar versions ignore
-  # junk at the end of a file), so that is a warning, not "OK".
   for f in "${files[@]}"; do
-    saved="$(awk '{ print $1 }' "$f.sha256" 2> /dev/null)"
-    if { [[ -n "$saved" && "$saved" != "$(backup_sha256 "$f")" ]]; } || ! tar -tzf "$f" > /dev/null 2>&1; then
-      viz_badge crit "$(basename "$f") is damaged: do not rely on it"
-      status=$ADMIN_CRIT
-    elif [[ -z "$saved" ]]; then
-      viz_badge warn "$(basename "$f") has no checksum file, so damage cannot be ruled out"
-      status="$(admin_worse "$status" "$ADMIN_WARN")"
-    fi
+    result="$(backup_check "$f")"
+    case "$result" in
+      ok)      rows+="$(basename "$f")"$'\t'"${VIZ_GREEN}OK$VIZ_RESET"$'\n' ;;
+      unsure)  rows+="$(basename "$f")"$'\t'"${VIZ_YELLOW}UNSURE$VIZ_RESET (no checksum file)"$'\n'
+               unsure+=("$(basename "$f")") ;;
+      damaged) rows+="$(basename "$f")"$'\t'"${VIZ_RED}DAMAGED$VIZ_RESET"$'\n'
+               damaged+=("$(basename "$f")") ;;
+    esac
   done
-  (( status == ADMIN_OK )) && viz_badge ok "all ${#files[@]} backup(s) are intact"
-  return "$status"
+  printf 'Archive\tStatus\n%s' "$rows" | viz_table
+
+  for f in "${damaged[@]}"; do report_alert crit "$f is damaged: do not rely on it"; done
+  for f in "${unsure[@]}"; do report_alert warn "$f has no checksum file, so damage cannot be ruled out"; done
+  (( REPORT_STATUS == ADMIN_OK )) && viz_badge ok "all ${#files[@]} backup(s) are intact"
+  return "$REPORT_STATUS"
 }
 
 # ---- restore ----
@@ -293,8 +284,14 @@ backup_cron_line() {
   esac
   bin="${OSBUDDY_BIN:-$OSBUDDY_ROOT/bin/os-buddy}"
   # In crontab a % starts a new line, so it must be escaped.
-  printf '%s %q %q backup create %q >> %q 2>&1 %s %q\n' "$expr" "$BASH" "$bin" "$src" \
-    "$OSBUDDY_BACKUP_DIR/backup.log" "$BACKUP_CRON_MARK" "$src" | sed 's/%/\\%/g'
+  printf '%s %q %q backup create %q >> %q 2>&1 %s\n' "$expr" "$BASH" "$bin" "$src" \
+    "$OSBUDDY_BACKUP_DIR/backup.log" "$(backup_cron_tag "$src")" | sed 's/%/\\%/g'
+}
+
+# The comment at the end of our cron line for a folder. It marks the line
+# as ours, so we can find it again (and never touch anyone else's lines).
+backup_cron_tag() {
+  printf '%s %q' "$BACKUP_CRON_MARK" "$1"
 }
 
 # Current crontab, or nothing when the user has none yet.
@@ -310,7 +307,7 @@ backup_schedule() {
   abs="$(backup_abs "$src")"
   line="$(backup_cron_line "$abs" "$when" "${at:-02:00}")" || return $?
   current="$(backup_crontab_read)"
-  if grep -qF "$BACKUP_CRON_MARK $(printf '%q' "$abs")" <<< "$current"; then
+  if grep -qF "$(backup_cron_tag "$abs")" <<< "$current"; then
     ui_error "$abs is already scheduled; run: os-buddy backup unschedule $(printf '%q' "$abs")"
     return 1
   fi
@@ -320,7 +317,7 @@ backup_schedule() {
   viz_kv "When" "$when${at:+ at $at}"
   viz_kv "Log" "$OSBUDDY_BACKUP_DIR/backup.log"
   printf '  %sThis line will be added to your crontab:%s\n    %s\n' "$VIZ_DIM" "$VIZ_RESET" "$line"
-  [[ "$ADMIN_DRY_RUN" == 1 ]] && { viz_badge info "dry run: nothing was changed"; return 0; }
+  admin_dry_run && return 0
   admin_confirm "Add it?" || { viz_badge info "cancelled, nothing was changed"; return 1; }
   mkdir -p "$OSBUDDY_BACKUP_DIR"
   { [[ -n "$current" ]] && printf '%s\n' "$current"; printf '%s\n' "$line"; } | "$OSBUDDY_CRONTAB" - ||
@@ -333,14 +330,14 @@ backup_unschedule() {
   [[ -n "$src" ]] || { ui_error "usage: backup unschedule PATH"; return 2; }
   abs="$( [[ -e "$src" ]] && backup_abs "$src" || printf '%s' "$src" )"
   current="$(backup_crontab_read)"
-  if ! grep -qF "$BACKUP_CRON_MARK $(printf '%q' "$abs")" <<< "$current"; then
+  if ! grep -qF "$(backup_cron_tag "$abs")" <<< "$current"; then
     ui_error "no schedule found for $abs"
     return 1
   fi
-  keep="$(grep -vF "$BACKUP_CRON_MARK $(printf '%q' "$abs")" <<< "$current")"
+  keep="$(grep -vF "$(backup_cron_tag "$abs")" <<< "$current")"
   viz_title "Remove backup schedule"
   viz_kv "Folder" "$abs"
-  [[ "$ADMIN_DRY_RUN" == 1 ]] && { viz_badge info "dry run: nothing was changed"; return 0; }
+  admin_dry_run && return 0
   admin_confirm "Remove it?" || { viz_badge info "cancelled, nothing was changed"; return 1; }
   printf '%s\n' "$keep" | grep -v '^$' | "$OSBUDDY_CRONTAB" - || { ui_error "crontab refused the change"; return 1; }
   viz_badge ok "schedule removed (existing backups are kept)"
@@ -376,7 +373,7 @@ admin_cmd_backup() {
     restore)      backup_restore "${2:-}" "${3:-}" ;;
     schedule)     backup_schedule "${2:-}" "${3:-}" "${4:-}" ;;
     unschedule)   backup_unschedule "${2:-}" ;;
-    -h|--help)    admin_backup_usage ;;
-    *)            ui_error "unknown backup action: $1"; admin_backup_usage >&2; return 2 ;;
+    -h|--help)    backup_usage ;;
+    *)            admin_usage_error "unknown backup action: $1" backup_usage ;;
   esac
 }

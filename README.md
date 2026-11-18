@@ -93,21 +93,26 @@ os-buddy/
 ├── bin/
 │   └── os-buddy              # entry point (the command you run)
 ├── lib/
-│   ├── config.sh
-│   ├── ui.sh
-│   ├── gemini.sh
-│   ├── tools.sh
-│   ├── policy.sh
-│   ├── agent.sh
-│   ├── viz.sh                # drawing kit: titles, bars, badges, boxed tables
-│   ├── render.sh             # shows the AI's Markdown as clean terminal text
-│   ├── admin.sh              # runs admin commands; --yes, --dry-run, ask-then-run
-│   ├── admin_status.sh       # os-buddy status
-│   ├── admin_health.sh       # os-buddy health
-│   ├── admin_disk.sh         # os-buddy disk
-│   ├── admin_proc.sh         # os-buddy proc
-│   ├── admin_backup.sh       # os-buddy backup
-│   └── admin_users.sh        # os-buddy users
+│   ├── load.sh               # loads every file below, in order
+│   ├── core/                 # shared basics
+│   │   ├── ui.sh             # messages and yes/no prompts (stderr)
+│   │   ├── text.sh           # trim, shorten, human_kb, human_age, is_mac
+│   │   ├── config.sh         # config file, environment and flags
+│   │   └── viz.sh            # drawing kit: titles, bars, badges, boxed tables
+│   ├── admin/                # admin reports: no AI, no API key
+│   │   ├── common.sh         # runs a command; --yes, --dry-run, ask-then-run, alerts
+│   │   ├── status.sh         # os-buddy status
+│   │   ├── health.sh         # os-buddy health
+│   │   ├── disk.sh           # os-buddy disk
+│   │   ├── proc.sh           # os-buddy proc
+│   │   ├── backup.sh         # os-buddy backup
+│   │   └── users.sh          # os-buddy users
+│   └── ai/                   # the AI agent
+│       ├── policy.sh         # safety policy: allow, ask or block
+│       ├── gemini.sh         # one call to the Gemini API, with retries
+│       ├── tools.sh          # the actions the AI can take
+│       ├── agent.sh          # the loop: ask the model, run tools, repeat
+│       └── render.sh         # shows the AI's Markdown as clean terminal text
 ├── share/
 │   ├── system-prompt.txt     # instructions sent to Gemini
 │   └── tools.json            # tool declarations for Gemini
@@ -144,14 +149,14 @@ os-buddy/
 | File | PEAS role | Responsibility |
 |---|---|---|
 | `bin/os-buddy` | Environment | Executable entry point: Bash/OS/dependency checks, flags, chooses chat or one-shot, finds and sources `lib/` relative to its own real location (so it still works through a symlink in `~/.local/bin`) |
-| `lib/config.sh` | Environment | Defaults, then `~/.config/os-buddy/config`, then env vars, then flags |
-| `lib/ui.sh` | Actuator and sensor | Coloured output and approval prompts, disabled when not a TTY |
-| `lib/gemini.sh` | Sensor | Builds the request, calls the API, retries |
-| `lib/agent.sh` | Agent function | The loop, history, stuck detection, trimming |
-| `lib/tools.sh` | Actuators and sensors | Tool implementations |
-| `lib/policy.sh` | Actuator guard | Classifies each action as allow, ask or block |
-| `lib/viz.sh`, `lib/render.sh` | Actuator (display) | Terminal visuals; Markdown answers turned into headings, bullets and boxed tables |
-| `lib/admin*.sh` | Actuators and sensors | The admin commands: status, health, disk, proc, backup, users |
+| `lib/core/config.sh` | Environment | Defaults, then `~/.config/os-buddy/config`, then env vars, then flags |
+| `lib/core/ui.sh` | Actuator and sensor | Coloured output and approval prompts, disabled when not a TTY |
+| `lib/ai/gemini.sh` | Sensor | Builds the request, calls the API, retries |
+| `lib/ai/agent.sh` | Agent function | The loop, history, stuck detection, trimming |
+| `lib/ai/tools.sh` | Actuators and sensors | Tool implementations |
+| `lib/ai/policy.sh` | Actuator guard | Classifies each action as allow, ask or block |
+| `lib/core/viz.sh`, `lib/ai/render.sh` | Actuator (display) | Terminal visuals; Markdown answers turned into headings, bullets and boxed tables |
+| `lib/admin/*.sh` | Actuators and sensors | The admin commands: status, health, disk, proc, backup, users |
 | `share/system-prompt.txt` | Agent function | System prompt text, kept out of Bash strings to avoid quoting bugs |
 | `share/tools.json` | Actuators and sensors | Tool declarations, read directly by `jq` |
 | `tests/run.sh` | Performance | Plain-Bash offline test runner, one test file per area |
