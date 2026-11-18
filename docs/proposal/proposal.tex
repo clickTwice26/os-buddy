@@ -1,25 +1,34 @@
 % =============================================================================
 %  Project Proposal -- os-buddy
-%  Cover and design follow the "Cubicle - Project Report" (Times text, plain
-%  black headings, grey-header tables, DIU cover page).
-%  Build:  pdflatex proposal.tex   (run twice so cross-references resolve)
-%  Edit the "Project details" and "Team" blocks below; everything else follows.
+%  Build:  tectonic proposal.tex   (or: xelatex proposal.tex)
 % =============================================================================
 \documentclass[11pt,a4paper]{article}
 
-% ---------- Fonts: Times text, Latin Modern Mono for code --------------------
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{lmodern}                 % provides the Latin Modern Mono code font
-\usepackage{times}                   % Times (Nimbus Roman) for text
-\renewcommand{\ttdefault}{lmtt}
-\usepackage{microtype}
+% ---------- Fonts: Onest (weight 500 Medium body, 700 Bold) ------------------
+\usepackage{fontspec}
+\defaultfontfeatures{
+  Path = /home/sleepycat/.local/share/fonts/onest/,
+  Extension = .ttf,
+  UprightFont = *-Medium,
+  BoldFont = *-Bold,
+  ItalicFont = *-Medium,
+  ItalicFeatures = {FakeSlant=0.15},
+  BoldItalicFont = *-Bold,
+  BoldItalicFeatures = {FakeSlant=0.15},
+  RawFeature = -calt,
+  Scale = 0.88
+}
+\setmainfont{Onest}
+\setsansfont{Onest}
+\setmonofont{Onest}
 
 % ---------- Layout ----------------------------------------------------------
-\usepackage[a4paper,top=2.3cm,bottom=2.2cm,left=2.5cm,right=2.5cm,headheight=14pt]{geometry}
+\usepackage[a4paper,top=2.1cm,bottom=2.0cm,left=2.3cm,right=2.3cm,headheight=14pt]{geometry}
 \usepackage{fancyhdr}
 \usepackage{graphicx}
 \usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning}
 \usepackage{array}
 \usepackage{tabularx}
 \usepackage{caption}
@@ -27,34 +36,36 @@
 
 % ---------- Project details (edit these) ------------------------------------
 \newcommand{\projectname}{os-buddy}
-\newcommand{\projectsubtitle}{An Agentic Operating-System Operator in Bash,\\ Designed with the PEAS Model}
-\newcommand{\coursecode}{CSE000}
-\newcommand{\coursetitle}{Course Title}
-\newcommand{\proposaldate}{13 November 2026}
+\newcommand{\projectsubtitle}{An Intelligent Terminal Assistant for Safe Linux\\ System Administration and Monitoring}
+\newcommand{\coursecode}{CSE324}
+\newcommand{\coursetitle}{Operating Systems Lab}
+\newcommand{\proposaldate}{19 November 2026}
 
 % ---------- Team (edit names, IDs, e-mails) ---------------------------------
-\newcommand{\memA}{Tamzidul Haque}
-\newcommand{\memB}{Umma Iman Monea}
-\newcommand{\memC}{Puja Chowdhury}
-\newcommand{\memD}{Tamima Rahman}
-\newcommand{\memE}{Shagato Chowdhury}
+\newcommand{\memA}{Umme Iman Monea}
+\newcommand{\memB}{Shagato Chowdhury}
+\newcommand{\memC}{Md. Kawsar Ahamed}
+\newcommand{\memD}{Mst. Washima Zinat Snigdha}
+\newcommand{\memE}{Md Himel Ahmed}
 
 \hypersetup{pdftitle={os-buddy: Project Proposal},pdfsubject={Group project proposal},
-  pdfkeywords={agentic AI, Bash, Gemini, PEAS, operating system}}
+  pdfkeywords={terminal assistant, Bash, Gemini, PEAS, operating system}}
 
 % ---------- Look and feel (matches the report) ------------------------------
 \setlength{\parindent}{1.5em}
 \setlength{\parskip}{0pt}
 \renewcommand{\arraystretch}{1.15}
 \definecolor{hdrgrey}{gray}{0.90}
+\definecolor{bodytext}{HTML}{212121}
+\AtBeginDocument{\color{bodytext}}
 \newcommand{\code}[1]{\texttt{\small #1}}
 \captionsetup{font=small,labelfont=bf,skip=4pt}
 
 \makeatletter
 \renewcommand\section{\@startsection{section}{1}{\z@}%
-  {1.6ex \@plus .4ex \@minus .2ex}{0.8ex \@plus .2ex}{\normalfont\large\bfseries}}
+  {1.5ex \@plus .3ex \@minus .2ex}{0.7ex \@plus .2ex}{\normalfont\large\bfseries}}
 \renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
-  {1.2ex \@plus .3ex \@minus .2ex}{0.5ex \@plus .2ex}{\normalfont\normalsize\bfseries}}
+  {1.1ex \@plus .2ex \@minus .2ex}{0.4ex \@plus .2ex}{\normalfont\normalsize\bfseries}}
 \makeatother
 
 \pagestyle{fancy}
@@ -89,21 +100,21 @@
 
   {\small\bfseries SUBMITTED BY}\\[0.3em]
   \begingroup\small
-  \begin{tabular}{@{}p{4.4cm}p{2.2cm}p{6.0cm}@{}}
+  \begin{tabular}{|p{4.6cm}|p{2.1cm}|p{5.9cm}|}
     \hline
     \hdrrow \textbf{Name} & \textbf{Student ID} & \textbf{Email} \\ \hline
-    \memA & 241-15-877 & {\scriptsize\texttt{tamzidul241-15-877@diu.edu.bd}} \\ \hline
-    \memB & 241-15-540 & {\scriptsize\texttt{iman241-15-540@diu.edu.bd}} \\ \hline
-    \memC & 241-15-493 & {\scriptsize\texttt{puja241-15-493@diu.edu.bd}} \\ \hline
-    \memD & 241-15-030 & {\scriptsize\texttt{rahman241-15-030@diu.edu.bd}} \\ \hline
-    \memE & 241-15-331 & {\scriptsize\texttt{shagato241-15-331@diu.edu.bd}} \\ \hline
+    \memA & 241-15-540 & {\footnotesize\texttt{iman241-15-540@diu.edu.bd}} \\ \hline
+    \memB & 241-15-331 & {\footnotesize\texttt{shagato241-15-331@diu.edu.bd}} \\ \hline
+    \memD & 241-15-811 & {\footnotesize\texttt{zinat241-15-811@diu.edu.bd}} \\ \hline
+    \memC & 241-15-309 & {\footnotesize\texttt{kawsar241-15-309@diu.edu.bd}} \\ \hline
+    \memE & 232-15-675 & {\footnotesize\texttt{ahmed2305101675@diu.edu.bd}} \\ \hline
   \end{tabular}\\[1.2em]
 
   {\small\bfseries SUPERVISED BY}\\[0.3em]
-  \begin{tabular}{@{}p{13.45cm}@{}}
+  \begin{tabular}{|p{\dimexpr 12.6cm+4\tabcolsep+2\arrayrulewidth\relax}|}
     \hline
-    \hdrrow \textbf{Dr. Abdus Sattar} \\ \hline
-    Associate Professor and Director, M.Sc. in CSE\\
+    \hdrrow \textbf{Ms. Tamanna Sultana} \\ \hline
+    Lecturer\\
     Department of Computer Science and Engineering\\
     Faculty of Science and Information Technology, Daffodil International University \\ \hline
   \end{tabular}\\[1.2em]
@@ -114,122 +125,170 @@
 \setcounter{page}{1}
 
 % =============================================================================
-%  BODY (pages 1--2)
+%  BODY (pages 1--3)
 % =============================================================================
-{\LARGE\bfseries Project Proposal}\\[-0.1em]
-\rule{\linewidth}{0.8pt}\vspace{0.4em}
+\section{Description}
+\lead{Motivation and what we are building:} Many students fear using the terminal or command prompt because they find it hard to understand or memorize shell commands and flags. Even though Linux is the most secure operating system, most students still prefer Windows because they think Linux is all about typing hard commands. We built \projectname\ as a full-time terminal assistant for people who fear commands, helping them use Linux comfortably while handling, seeing, and understanding all system administrative tasks and machine states efficiently and precisely. A user simply types a goal in plain English, such as ``find the three largest files here,'' and the Bash assistant uses Google's Gemini API to plan steps, run commands, edit files, and check every result until done.
 
-\section{Project Title and Description}
-
-\subsection{Title}
-\textbf{\projectname: An Agentic Operating-System Operator in Bash, Designed with the PEAS Model}
-
-\subsection{Description}
-Operating a Unix system means remembering many commands, their flags and their risks.
-\lead{\projectname} lowers that barrier. The user states a goal in plain English, such as
-``find the three largest files in this folder''; the agent plans, runs commands, reads and
-edits files, checks the result of every action and continues until the goal is met or it can
-report honestly that it has failed. It is written entirely in Bash and uses Google's Gemini
-function-calling interface to choose each next step, with the conversation history serving as
-its internal state. This makes it a goal-based, model-based agent.
-
-\lead{A fixed safety policy sits between the model and the system.} The policy is Bash code
-that the model cannot override: read-only commands run automatically, changes ask for the
-user's approval, and dangerous patterns such as \code{rm -rf /} are always blocked. The tool
-runs on Linux and Unix-like systems (Bash 4.4+, \code{curl}, \code{jq}) in two modes, an
-interactive chat with memory and a one-shot mode (\code{os-buddy "goal"}) with meaningful exit
-codes. Two extra commands, \code{os-buddy disk} and \code{os-buddy health}, print system
-reports without an API key.
+\lead{Built-in administration and safety control:} Alongside the AI assistant, \projectname\ includes six built-in administration commands (\code{status}, \code{health}, \code{disk}, \code{proc}, \code{backup}, and \code{users}) that show the exact state of the machine through clean tables, usage bars, and warning badges without needing an API key or internet access. When the AI runs, a fixed Bash safety policy checks every action first: safe read-only checks run automatically, any system change shows the exact command and asks for user approval first, and dangerous commands like \code{rm -rf /} are always blocked so students can learn Linux safely.
 
 \subsection{Problem and Objectives}
-Language models can suggest shell commands, but running them blindly is unsafe and chat-only
-assistants leave verification to the user. The project builds an agent that finishes
-multi-step tasks while keeping the user in control. Its objectives are:
+New Linux users face two common problems: typing commands by hand is risky because one wrong flag can damage files, and copying commands from a web chat leaves the user to check if they worked. Everyday tasks like checking processes, disks, backups, and users also require many separate tools (\code{ps}, \code{df}, \code{du}, \code{tar}, \code{sha256sum}, \code{crontab}, \code{useradd}) whose raw output is hard to read. Our main objectives are:
 \begin{itemize}\tightlist
-  \item a working plan--act--observe--verify agent loop in pure Bash;
-  \item a three-level safety policy (allow, ask, block) with zero bypasses;
-  \item a robust Gemini integration (retries, blocked and empty responses) that never
-        exposes the API key in process listings or child environments;
-  \item an offline test suite and continuous integration on macOS and several Linux versions.
+  \item a working plan, act, observe, and verify AI agent loop in Bash for chat and one-shot goals;
+  \item six visual admin modules (\code{status}, \code{health}, \code{disk}, \code{proc}, \code{backup}, \code{users}) linked via \code{system\_report};
+  \item a three-level Bash safety policy (\code{allow}, \code{ask}, \code{block}) with approval prompts and zero bypasses;
+  \item reliable Gemini API calls with automatic retries, output size limits, and API key protection;
+  \item an offline automated test suite and continuous integration on macOS and seven Linux setups.
 \end{itemize}
 
 \section{Design Approach and Scope}
-The agent is specified with the PEAS framework (Table~\ref{tab:peas}). The code is a small
-entry point plus focused modules (\code{lib/agent.sh}, \code{gemini.sh}, \code{policy.sh},
-\code{tools.sh}, \code{ui.sh}), with prompt text and tool declarations kept as data files.
-\emph{Out of scope:} Windows support, a graphical interface, and state-changing actions
-without approval.
+We designed \projectname\ around the PEAS (Performance, Environment, Actuators, Sensors) agent model (Table~\ref{tab:peas}) and the use case flow in Figure~\ref{fig:usecase}. The AI works as a goal-based, model-based agent that keeps its conversation history as its working memory. The codebase has an entry script (\code{bin/os-buddy}), focused scripts in \code{lib/} (\code{agent.sh}, \code{gemini.sh}, \code{policy.sh}, \code{tools.sh}, \code{ui.sh}, \code{viz.sh}, \code{render.sh}, \code{admin*.sh}), and data files in \code{share/}.
 
-\begin{table}[h]
+\begin{table}[!htbp]
 \centering
-\caption{PEAS summary of \projectname.}
+\caption{PEAS specification of \projectname.}
 \label{tab:peas}
 \small
 \begin{tabularx}{\linewidth}{@{}|>{\bfseries}p{2.2cm}|X|@{}}
 \hline
 \hdrrow Component & \textbf{Specification} \\ \hline
-Performance & Goal completion with verification; no policy bypass; recovery from failed
-  commands; at most 30 steps; resilience to API errors; exit codes 0 done, 1 error, 2 usage,
-  3 step limit. \\ \hline
-Environment & Local Linux or Unix host, a human at a terminal (or none), the Gemini API and
-  untrusted file content; partially observable, stochastic and sequential. \\ \hline
-Actuators & Shell commands, file read and write, user questions and approval prompts, all
-  passed through the policy layer. \\ \hline
-Sensors & Command output and exit status, file contents, system facts and user replies. \\ \hline
+Performance & Completes goals with verification; zero policy bypasses or unapproved changes; recovers from failed commands; max 30 steps; handles API errors; clear exit codes (0 to 5). \\ \hline
+Environment & Local Linux or macOS machine, a user at a terminal (or a script or cron job), the Gemini API, and untrusted file or command text; partially observable, dynamic, and sequential. \\ \hline
+Actuators & Six AI tools (\code{run\_command}, \code{read\_file}, \code{write\_file}, \code{edit\_file}, \code{system\_report}, \code{ask\_user}), six built-in admin modules, formatted terminal visuals, and exit codes, all guarded by policy. \\ \hline
+Sensors & Command output (\code{stdout}, \code{stderr}), exit codes, timeouts, numbered file lines, live system reports, startup machine facts, Gemini API responses, and user approvals or answers. \\ \hline
 \end{tabularx}
 \end{table}
 
+\lead{How the agent loop works:} When a user enters a goal in chat or one-shot mode (\code{os-buddy "goal"}), \code{lib/agent.sh} saves it to a temporary JSON history file and runs a loop for up to 30 steps. In each step, \code{lib/gemini.sh} sends the history, machine facts (OS, shell, folder, user), and tool definitions to Gemini (\code{gemini-3.6-flash} by default). When Gemini replies with a final answer, \code{lib/render.sh} formats the Markdown into clean terminal headings, bullets, and tables. When Gemini asks to use tools, \code{lib/tools.sh} checks each request against the safety policy, runs approved actions, caps any output at 16~KB, and returns all results so Gemini can verify if the step worked.
+
+\newpage
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[
+  >=Stealth,
+  uc/.style={ellipse, draw=bodytext, line width=0.5pt, fill=white, minimum width=3.65cm, minimum height=0.72cm, align=center, font=\scriptsize, inner sep=1pt},
+  gate/.style={ellipse, draw=bodytext, line width=0.6pt, fill=hdrgrey, minimum width=3.65cm, minimum height=0.72cm, align=center, font=\scriptsize\bfseries, inner sep=1pt},
+  actorbox/.style={rectangle, rounded corners=2pt, draw=bodytext, line width=0.5pt, fill=hdrgrey, minimum width=2.05cm, minimum height=0.68cm, align=center, font=\scriptsize\bfseries, inner sep=2pt}
+]
+  \draw[line width=0.6pt, fill=gray!4] (-4.90,-1.56) rectangle (4.90,1.82);
+  \node[font=\scriptsize\bfseries, anchor=north] at (0,1.76) {os-buddy System Boundary};
+
+  \node[uc] (uc1) at (-2.62, 0.98) {Give Goal in Plain English\\[0.5pt]{\tiny (\texttt{os-buddy} chat / one-shot)}};
+  \node[uc] (uc2) at (-2.62, 0.0) {Manage System Tasks\\[0.5pt]{\tiny (\texttt{proc}, \texttt{backup}, \texttt{users})}};
+  \node[uc] (uc3) at (-2.62, -0.98) {View System Reports\\[0.5pt]{\tiny (\texttt{status}, \texttt{health}, \texttt{disk})}};
+
+  \node[uc] (uc4) at (2.62, 0.98) {Plan Steps \& Call AI Tools\\[0.5pt]{\tiny (shell, file \& report tools)}};
+  \node[gate] (uc5) at (2.62, 0.0) {Bash Safety Policy Gate\\[0.5pt]{\tiny (\texttt{allow} / \texttt{ask} / \texttt{block})}};
+  \node[uc] (uc6) at (2.62, -0.98) {Collect Live OS State\\[0.5pt]{\tiny (read-only metrics \& alerts)}};
+
+  \begin{scope}[shift={(-6.30,0.1)}]
+    \draw[line width=0.6pt] (0,0.44) circle (0.14cm);
+    \draw[line width=0.6pt] (0,0.30) -- (0,-0.12);
+    \draw[line width=0.6pt] (-0.22,0.15) -- (0.22,0.15);
+    \draw[line width=0.6pt] (0,-0.12) -- (-0.18,-0.42);
+    \draw[line width=0.6pt] (0,-0.12) -- (0.18,-0.42);
+    \node[font=\scriptsize\bfseries, align=center, anchor=north] at (0,-0.45) {Student /\\Terminal User};
+  \end{scope}
+
+  \node[actorbox] (gemini) at (6.42, 0.98) {Google\\Gemini API};
+  \node[actorbox] (hostos) at (6.42, -0.49) {Linux / macOS\\Host System};
+
+  \draw[line width=0.5pt] (-5.65, 0.35) -- (uc1.west);
+  \draw[line width=0.5pt] (-5.65, 0.0) -- (uc2.west);
+  \draw[line width=0.5pt] (-5.65, -0.35) -- (uc3.west);
+
+  \draw[line width=0.5pt, dashed, ->] (uc1.east) -- node[above, font=\tiny] {\guillemotleft include\guillemotright} (uc4.west);
+  \draw[line width=0.5pt, dashed, ->] (uc2.east) -- node[above, font=\tiny] {\guillemotleft include\guillemotright} (uc5.west);
+  \draw[line width=0.5pt, dashed, ->] (uc3.east) -- node[above, font=\tiny] {\guillemotleft include\guillemotright} (uc6.west);
+  \draw[line width=0.5pt, dashed, ->] (uc4.south) -- (uc5.north);
+
+  \draw[line width=0.5pt, <->] (uc4.east) -- (gemini.west);
+  \draw[line width=0.5pt, ->] (uc5.east) -- (hostos.north west);
+  \draw[line width=0.5pt, ->] (uc6.east) -- (hostos.south west);
+\end{tikzpicture}
+\caption{Use case diagram of \projectname\ showing user actions, the Bash safety gate, Gemini API, and host OS.}
+\label{fig:usecase}
+\vspace{-0.4em}
+\end{figure}
+
+\lead{How the safety policy protects the user:} Located in \code{lib/policy.sh}, the safety filter checks every action before it runs and defaults to asking the user whenever a command is not known to be safe:
+\begin{itemize}\tightlist
+  \item \textbf{Allow automatically:} Simple commands and pipelines built only from safe read-only tools (\code{ls}, \code{cat}, \code{head}, \code{tail}, \code{grep}, \code{df}, \code{du}, \code{ps}, \code{free}, \code{uptime}, \code{lsblk}, \code{systemctl status}, \code{git status}, \code{git diff}) run right away when they contain no file redirects, command substitutions, or background jobs.
+  \item \textbf{Ask the user:} Commands that modify the system, use \code{sudo} or redirects, write or edit files, or read private paths (\code{.ssh}, \code{.aws}, \code{.gnupg}, \code{.env}, private keys, \code{/etc/shadow}) pause and display the exact command, the AI's reason, and the risk level (\code{[y] yes}, \code{[n] no}, \code{[a] always allow in this chat}).
+  \item \textbf{Block always:} Harmful patterns such as \code{rm -rf} on \code{/}, \code{\~}, or system folders, \code{mkfs}, direct writes to disk devices (\code{dd of=/dev/...}), recursive permission changes on \code{/}, and fork bombs are always blocked, even if \code{-{}-yes} is passed.
+\end{itemize}
+
+\lead{How system administration tasks and states are handled:} So users can inspect and manage their computer without memorizing commands, \code{lib/admin*.sh} and \code{lib/viz.sh} provide six built-in admin modules (Table~\ref{tab:features}). Any command that changes the system shows the exact shell command first, supports \code{-{}-dry-run} for safe testing, and asks for confirmation. Health and disk reports compare usage against warning (70\%) and critical (90\%) thresholds and return exit codes \code{0} (normal), \code{4} (warning), or \code{5} (critical) for automated scripts.
+
+\begin{table}[!htbp]
+\centering
+\caption{Summary of \projectname\ administration commands and AI agent tools.}
+\label{tab:features}
+\small
+\begin{tabularx}{\linewidth}{@{}|>{\bfseries}p{2.7cm}|p{2.1cm}|X|@{}}
+\hline
+\hdrrow Command / Tool & \textbf{Category} & \textbf{How it helps the user} \\ \hline
+\code{os-buddy status} & Admin report & Single dashboard showing OS facts, health bars, top 5 CPU processes, user counts, backup age, and one overall system status. \\ \hline
+\code{os-buddy health} & Admin report & Shows uptime, CPU usage, system load, RAM, swap, and fullest disk with visual bars and status badges (\code{ok}, \code{warn}, \code{crit}). \\ \hline
+\code{os-buddy disk} & Admin report & Lists real disks with size, used and free space, usage bars, and alerts, plus the 10 largest items inside an optional folder path. \\ \hline
+\code{os-buddy proc} & Admin module & Counts processes by state, lists top 10 by CPU and memory, flags zombie processes, searches by name (\code{find}), and stops processes (\code{kill}). \\ \hline
+\code{os-buddy backup} & Admin module & Creates \code{.tar.gz} backups with SHA-256 checksums, keeps the 7 newest copies, verifies integrity, restores files safely, and sets cron jobs. \\ \hline
+\code{os-buddy users} & Admin module & Lists human accounts, admin users, active logins, and login history; adds, locks, unlocks, or removes users via \code{sudo} while protecting \code{root}. \\ \hline
+Shell \& file tools & AI agent tools & \code{run\_command} (120~s timeout), \code{read\_file} (numbered lines), \code{write\_file} (preview), and \code{edit\_file} (diff view), all checked by policy. \\ \hline
+Report \& prompt & AI agent tools & \code{system\_report} gives the AI instant read-only access to all six admin reports; \code{ask\_user} asks the user whenever a goal needs clarification. \\ \hline
+\end{tabularx}
+\end{table}
+
+\lead{Platform requirements and scope:} Runs on Linux and macOS (Bash~4.4+, \code{curl}, \code{jq}) without GNU-only flags across Ubuntu, Debian, Fedora, Alpine, and macOS. \emph{Out of scope:} native Windows support, a graphical desktop app, and making system changes without user approval.
+
 \newpage
 \section{Team Contributions}
-The project is carried out by a group of five. Work is divided by component rather than by
-feature, so each member owns an interface and can work without waiting for the others.
+The project is built by a team of five students. The codebase is split into clear modules so each member owns a dedicated part of the system and can develop and test it independently (Table~\ref{tab:team}).
 
-\begin{table}[h]
+\begin{table}[!htbp]
 \centering
 \caption{Division of work within the group.}
 \label{tab:team}
 \small
-\begin{tabularx}{\linewidth}{@{}|R{3.3cm}|R{3.6cm}|X|@{}}
+\begin{tabularx}{\linewidth}{@{}|R{3.6cm}|R{3.2cm}|>{\raggedright\arraybackslash}X|@{}}
 \hline
-\hdrrow \textbf{Member} & \textbf{Primary responsibility} & \textbf{Principal contribution} \\ \hline
-\memE & Architecture, agent core & PEAS design, agent loop, stuck detection, history trimming,
-  CLI entry point, chat and one-shot modes, release \\ \hline
-\memA & Safety policy & Allow/ask/block classification, dangerous-pattern list, approval
-  prompts, secret-scanning commit hook \\ \hline
-\memB & Gemini integration & API client and retries, tool declarations, system prompt,
-  configuration precedence, API-key protection \\ \hline
-\memC & Tools and reports & Tool implementations with timeouts and truncation, \code{disk}
-  and \code{health} reports, terminal rendering \\ \hline
-\memD & Testing, CI, documentation & Offline test runner and scripted fixtures, CI and ShellCheck,
-  README, design document, final report \\ \hline
+\hdrrow \textbf{Member} & \textbf{Primary role} & \textbf{Principal contribution} \\ \hline
+\memA & AI \& Config Lead & Gemini API client and retries (\code{lib/gemini.sh}), tool schemas (\code{share/tools.json}), system prompt, config loader (\code{lib/config.sh}), key security \\ \hline
+\memB & Architecture \& Core Lead & PEAS design, \code{bin/os-buddy}, chat and one-shot modes, 30-step agent loop (\code{lib/agent.sh}), stuck detection, history trimming \\ \hline
+\memD & Security \& Policy Lead & Three-level classifier (\code{lib/policy.sh}), destructive command blocking, sensitive path rules, approval prompts, secret-scanning Git hook \\ \hline
+\memC & Admin \& Tool Lead & Agent tools (\code{lib/tools.sh}), visual kit and renderer (\code{lib/viz.sh}, \code{render.sh}), admin modules (\code{status}, \code{health}, \code{disk}, \code{proc}, \code{backup}, \code{users}) \\ \hline
+\memE & QA, CI \& Docs Lead & Offline test runner (\code{tests/run.sh}) and fixtures, GitHub Actions CI on macOS and 7 Linux setups, ShellCheck, README, diagrams, proposal \\ \hline
 \multicolumn{3}{|l|}{\cellcolor{hdrgrey}\textbf{Shared by the whole group}} \\ \hline
-\multicolumn{3}{|l|}{Requirements analysis, architecture decisions, code review, demonstration} \\ \hline
+\multicolumn{3}{|l|}{Requirements analysis, PEAS design review, cross-platform testing, code review, live demonstration} \\ \hline
 \end{tabularx}
 \end{table}
 
 \section{Plan and Expected Outcome}
-\begin{table}[h]
+\begin{table}[!htbp]
 \centering
-\caption{Planned schedule.}
+\caption{Planned two-week project schedule.}
 \label{tab:plan}
 \small
-\begin{tabularx}{\linewidth}{@{}|R{1.6cm}|X|R{5.0cm}|@{}}
+\begin{tabularx}{\linewidth}{@{}|R{1.8cm}|>{\raggedright\arraybackslash}X|R{4.6cm}|@{}}
 \hline
-\hdrrow \textbf{Weeks} & \textbf{Milestone} & \textbf{Lead} \\ \hline
-1--2 & Requirements, PEAS design, repository and tooling & \memE, \memD \\ \hline
-3--4 & Gemini client, tool declarations, basic agent loop & \memB, \memE \\ \hline
-5--6 & Safety policy, approvals, tools and reports & \memA, \memC \\ \hline
-7--8 & Integration, tests and CI, final report, demonstration & \memD, all \\ \hline
+\hdrrow \textbf{Timeline} & \textbf{Milestone} & \textbf{Lead} \\ \hline
+Days 1--3 & Problem analysis, PEAS design, repository setup, config loader, and CLI entry point & \memB, \memA \\ \hline
+Days 4--7 & Gemini API client with retries, tool schemas, system prompt, and core 30-step agent loop & \memA, \memB \\ \hline
+Days 8--11 & Bash safety policy, file and shell tools, visual terminal UI kit, and all six admin modules & \memC, \memD \\ \hline
+Days 12--14 & AI \code{system\_report} integration, offline test suite, multi-OS CI pipeline, docs, and demo & \memE, all \\ \hline
 \end{tabularx}
 \end{table}
 
-\lead{Expected outcome.} A working \code{os-buddy} command with documentation, an offline test
-suite and a demonstration of the agent completing real system tasks safely. Each performance
-measure has a check: scripted multi-step scenarios for goal completion, a table of bypass
-attempts for the policy, stubbed API errors for resilience, and exit-code tests. The main risks
-are a harmful command proposed by the model (mitigated by the policy layer), prompt injection
-through file content (tool output is treated as data and every change needs approval), and
-API outages (retries and clear errors).
+\lead{Expected outcome and verification:} The finished project provides the \code{os-buddy} command, an installer (\code{install.sh}), complete documentation and diagrams, and an offline test suite (\code{bash tests/run.sh}). Every PEAS goal is verified by automated tests: mock scenarios test task completion and error recovery, a policy table checks safe, risky, and blocked commands, admin tests verify all six modules, and GitHub Actions runs all tests and ShellCheck on macOS~15 and seven Linux setups.
+
+\lead{Risk handling:} Four main risks are handled by design:
+\begin{enumerate}\tightlist
+  \item Unsafe AI commands are caught by the Bash policy, which blocks destructive commands and asks before any change.
+  \item Harmful instructions inside files are treated strictly as text data and still need user approval.
+  \item Admin mistakes are prevented by SHA-256 checks before restore, protection of \code{root} and critical PIDs, and \code{-{}-dry-run} previews.
+  \item API outages use automatic retries while all six admin modules work offline.
+\end{enumerate}
 
 \section*{References}
 \begingroup\small
